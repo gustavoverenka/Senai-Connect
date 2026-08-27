@@ -1,0 +1,13 @@
+# Dependências do Node
+node_modules/
+
+# Variáveis de ambiente e senhas (CRÍTICO)
+.env
+.env.local
+*.env
+backend/.env
+
+# Logs e arquivos do sistema
+*.log
+.DS_Store
+.vscode/
