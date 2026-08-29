@@ -1,12 +1,12 @@
 const supabase =  require('../config/supabase');
 const { z } = require('zod');
 
-// Validacao do corpo da mensagem
+// Schema de validação de mensagem.
 const sendMessageSchema = z.object({
     content: z.string().min(1, 'A mensagem nao pode estar vazia.').max(2000, 'A mensagem nao pode ter mais de 2000 caracteres.'),
 });
 
-// Enviar mensagem
+// Envia uma nova mensagem direta.
 const sendMessage = async (req, res) => {
     const receiverId = parseInt(req.params.id, 10);
     const senderId = req.userId;
@@ -17,7 +17,7 @@ const sendMessage = async (req, res) => {
     }
 
     try {
-        // Confere se o destinatario existe
+        // Valida a existência do destinatário.
         const { data: receiver, error: checkError } = await supabase
           .from('users')
           .select('id')
@@ -45,13 +45,24 @@ const sendMessage = async (req, res) => {
     }
 };
 
-// Retornar historico de mensagens com um usuario especifico
+// Retorna o histórico da conversa.
 const getConversation = async (req, res) => {
     const otherUserId = parseInt(req.params.id, 10);
     const myId = req.userId;
 
     try {
-        // Busca as mensagens trocadas entre os dois usuarios
+        // Confere se o outro usuario existe
+        const { data: other, error: checkError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', otherUserId)
+          .maybeSingle();
+
+        if (checkError || !other) {
+            return res.status(404).json({ error: 'Usuario nao encontrado.'});
+        }
+
+        // Obtém as mensagens trocadas.
         const { data: messages, error } = await supabase
           .from('messages')
           .select('*')
@@ -62,12 +73,12 @@ const getConversation = async (req, res) => {
             return res.status(500).json({ error: 'Erro ao carregar o historico da conversa.'});
         }
 
-        // Filtra as mensagens recebidas que ainda nao foram lidas
+        // Identifica mensagens não lidas.
         const unreadIds = messages
           .filter(m => m.sender_id === otherUserId && m.is_read === false)
           .map(m => m.id);
 
-        // Atualiza o status das mensagens para lidas
+        // Atualiza o status de leitura.
         if (unreadIds.length > 0) {
             await supabase.from('messages').update({ is_read: true}).in('id', unreadIds);
         }
@@ -79,7 +90,7 @@ const getConversation = async (req, res) => {
     }
 };
 
-// Listar a caixa de entrada agrupada por usuario
+// Retorna a caixa de entrada (agrupada).
 const getInbox = async (req, res) => {
     const myId = req.userId;
 
@@ -94,7 +105,7 @@ const getInbox = async (req, res) => {
             return res.status(500).json({ error: 'Erro ao buscar dados da caixa de entrada.'});
         }
 
-        // Agrupa as mensagens mantendo apenas a mais recente de cada contato
+        // Agrupa mensagens pelo contato mais recente.
         const inboxMap = new Map();
 
         messages.forEach(msg => {

@@ -1,16 +1,27 @@
 const supabase = require('../config/supabase');
 
-//Seguir ou deixar de seguir um usuario
+// Alterna o status de seguidor.
 const toggleFollow = async (req, res) => {
     const followingId = parseInt(req.params.id, 10);
-    const followerId = req.userId; //Vem do token
+    const followerId = req.userId; // Extraído do token JWT.
 
     if (followingId === followerId) {
         return res.status(400).json({ error: 'Voce nao pode seguir a si mesmo.'});
     }
 
     try {
-        //Verifica se ja segue
+        // Valida a existência do usuário alvo.
+        const { data: target, error: targetError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', followingId)
+          .maybeSingle();
+
+        if (targetError || !target) {
+            return res.status(404).json({ error: 'Usuario nao encontrado.'});
+        }
+
+        // Verifica vínculo existente.
         const { data: existingFollow } = await supabase
           .from('follows')
           .select('*')
@@ -19,7 +30,7 @@ const toggleFollow = async (req, res) => {
           .maybeSingle();
 
         if (existingFollow) {
-            //Se ja segue, remove
+            // Remove vínculo de seguidor.
             await supabase
               .from('follows')
               .delete()
@@ -28,10 +39,15 @@ const toggleFollow = async (req, res) => {
 
             return res.json({ message: 'Voce deixou de seguir este usuario.', following: false});
         } else {
-            //Se nao segue, adiciona
-            await supabase
+            // Cria vínculo de seguidor.
+            const { error: insertError } = await supabase
               .from('follows')
               .insert([{ follower_id: followerId, following_id: followingId }]);
+              
+            if (insertError) {
+                console.error("Erro insert follow", insertError);
+                return res.status(500).json({ error: 'Erro ao seguir.' });
+            }
 
             return res.json({ message: 'Voce esta seguindo este usuario agora!', following: true });
         }
@@ -41,7 +57,7 @@ const toggleFollow = async (req, res) => {
     }
 };
 
-//Lista seguidores de um usuario
+// Retorna a lista de seguidores.
 const getFollowers = async (req, res) => {
     const userId = parseInt(req.params.id, 10);
 
@@ -53,14 +69,14 @@ const getFollowers = async (req, res) => {
 
         if (error) throw error;
 
-        //Separa so os IDs num array
+        // Extrai array de identificadores.
         const followerIds = follows.map(f => f.follower_id);
 
         if (followerIds.length === 0) {
             return res.json({ followers: [] });
         }
 
-        //Busca perfil de cada ID
+        // Obtém os perfis correspondentes.
         const { data: users } = await supabase
           .from('users')
           .select('id, name, username, profile_picture, role, bio')
@@ -73,7 +89,7 @@ const getFollowers = async (req, res) => {
     }
 };
 
-// Listar quem o usuário segue (Quem eu sigo)
+// Retorna a lista de usuários seguidos.
 const getFollowing = async (req, res) => {
     const userId = parseInt(req.params.id, 10);
 

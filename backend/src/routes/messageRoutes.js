@@ -14,7 +14,7 @@ const {
 // Todas as rotas de mensagens exigem login
 router.use(authMiddleware);
 
-// Rota para listar com quem eu tenho conversas (Caixa de Entrada)
+// Rota para listar com quem eu tenho conversas
 router.get('/inbox', getInbox);
 
 // Rota para pegar a conversa inteira com um usuário específico

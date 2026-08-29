@@ -96,20 +96,26 @@
       }
     },
     "/api/auth/verify-email": {
-      "get": {
+      "post": {
         "tags": ["Auth"],
-        "summary": "Verifica o e-mail do usuário via token",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "string" }
+        "summary": "Verifica o e-mail do usuário via código de 6 dígitos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "joao@email.com" },
+                  "code": { "type": "string", "example": "123456" }
+                }
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "200": { "description": "E-mail verificado com sucesso" },
-          "400": { "description": "Token inválido ou expirado" }
+          "400": { "description": "Código inválido ou e-mail incorreto" }
         }
       }
     },

@@ -24,6 +24,34 @@ const getMyProfile = async (req, res) => {
   }
 };
 
+const getUserProfile = async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name, username, role, bio, profile_picture, created_at')
+      .eq('id', targetId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    // verifica se ta seguindo
+    const { data: follow } = await supabase
+      .from('follows')
+      .select('*')
+      .eq('follower_id', req.userId)
+      .eq('following_id', targetId)
+      .maybeSingle();
+
+    return res.json({ user, isFollowing: !!follow });
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
+};
+
 const updateBio = async (req, res) => {
   const { bio } = req.body;
 
@@ -56,28 +84,8 @@ const uploadAvatar = async (req, res) => {
     }
 
     const file = req.file;
-    const fileExt = file.originalname.split('.').pop();
-    const fileName = `avatars/avatar-${req.userId}-${Date.now()}.${fileExt}`;
-
-    const bucketName = process.env.SUPABASE_BUCKET || 'uploads';
-
-    const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error('Erro no upload Supabase:', uploadError);
-      return res.status(500).json({ error: 'Erro ao salvar a foto no Supabase Storage.' });
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(fileName);
-
-    const avatarUrl = publicUrlData.publicUrl;
+    // URL para o arquivo salvo localmente
+    const avatarUrl = `http://localhost:3000/uploads/${file.filename}`;
 
     const { data: user, error: dbError } = await supabase
       .from('users')
@@ -128,6 +136,7 @@ const searchUsers = async (req, res) => {
 
 module.exports = {
   getMyProfile,
+  getUserProfile,
   updateBio,
   uploadAvatar,
   searchUsers,

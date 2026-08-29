@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const supabase = require('../config/supabase');
 
-//Validador de texto de post e comentario
+// Schema de validação para publicações e comentários.
 const createPostSchema = z.object({
     content: z.string().min(1, 'O conteudo do post nao pode estar vazio').max(1000, 'Maximo de 1000 caracteres'),
 });
@@ -10,38 +10,20 @@ const commentSchema = z.object({
     content: z.string().min(1, 'O comentario nao pode estar vazio').max(500, 'Maximo de 500 caracteres'),
 });
 
-//Criar um novo post, com ou sem imagem
+// Cria uma nova publicação.
 const createPost = async (req, res) => {
     const { content } =  req.body;
     let imageUrl = '';
 
     try {
-        //Se o user colocou uma imagem, envia pro Storage
+        // Processa o upload de imagem, se fornecida.
         if (req.file) {
             const file = req.file;
-            const fileExt = file.originalname.split('.').pop();
-            const fileName =  `posts/post-${req.userId}-${Date.now()}.${fileExt}`;
-            const bucketName = process.env.SUPABASE_BUCKET || 'uploads';
-
-            const { error: uploadError } = await supabase.storage
-              .from(bucketName)
-              .upload(fileName, file.buffer, {
-                contentType: file.mimetype,
-                upsert: true,
-              });
-
-            if (uploadError) {
-                return res.status(500).json({ error: 'Erro ao enviar imagem do post.'});
-            }
-
-            const { data: publicUrlData } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(fileName);
-
-            imageUrl = publicUrlData.publicUrl;
+            const avatarUrl = `http://localhost:3000/uploads/${file.filename}`;
+            imageUrl = avatarUrl;
         }
 
-        //Insere o post no banco
+        // Persiste a publicação no banco de dados.
         const { data: post, error: insertError } = await supabase
           .from('posts')
           .insert([
@@ -51,7 +33,7 @@ const createPost = async (req, res) => {
                 image: imageUrl,
             },
           ])
-          .select('id, content, image, created_at, user:users(id, name, username, role, profile_picture)')
+          .select('id, content, image, created_at, author:users!posts_user_id_fkey(id, name, username, role, profile_picture)')
           .single();
 
         if (insertError) {
@@ -68,7 +50,7 @@ const createPost = async (req, res) => {
     }
 };
 
-//Listar o feed completo
+// Retorna o feed de publicações.
 const getFeed = async (req, res) => {
     try {
         const { data: posts, error} =  await supabase
@@ -78,7 +60,7 @@ const getFeed = async (req, res) => {
             content,
             image,
             created_at,
-            author: users (id, name, username, role, profile_picture),
+            author: users!posts_user_id_fkey (id, name, username, role, profile_picture),
             likes (user_id),
             comments (
             id,
@@ -93,7 +75,7 @@ const getFeed = async (req, res) => {
             return res.status(500).json({ error: 'Erro ao carregar o feed.'});
         }
 
-        //Formata o retorno
+        // Estrutura o payload de resposta.
         const formattedPosts = posts.map((post) => {
             const isLikeByMe = post.likes.some((like) => like.user_id === req.userId);
             return {
@@ -116,12 +98,12 @@ const getFeed = async (req, res) => {
     }
 };
 
-//Curtir ou descurtir post
+// Alterna o status de curtida da publicação.
 const toggleLike = async (req, res) => {
     const postId = parseInt(req.params.id, 10);
 
     try {
-        //Verifica se ja curtiu
+        // Verifica curtida existente.
         const { data: existingLike } = await supabase
           .from('likes')
           .select('*')
@@ -130,7 +112,7 @@ const toggleLike = async (req, res) => {
           .maybeSingle();
 
         if (existingLike) {
-            //se ja curtiu, descurte
+            // Remove curtida.
             await supabase
               .from('likes')
               .delete()
@@ -139,7 +121,7 @@ const toggleLike = async (req, res) => {
 
             return res.json({ message: 'Curtida removida.', liked: false });
         } else {
-            //se nao curtiu, adiciona a curtida
+            // Adiciona curtida.
             await supabase
               .from('likes')
               .insert([{ user_id: req.userId, post_id: postId }]);
@@ -148,11 +130,11 @@ const toggleLike = async (req, res) => {
         }
     } catch (error) {
         console.error('Erro ao curtir post:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor'});   
+        return res.status(500).json({ error: 'Erro interno no servidor.' });
     }
 };
 
-//Comentar em um post
+// Adiciona um comentário à publicação.
 const addComment = async (req, res) => {
     const postId = parseInt(req.params.id, 10);
     const { content } = req.body;
@@ -184,7 +166,7 @@ const addComment = async (req, res) => {
     }
 };
 
-//Deletar Post, author ou admin
+// Remove a publicação (requer permissão de autor ou administrador).
 const deletePost = async (req, res) => {
     const postId = parseInt(req.params.id, 10);
 

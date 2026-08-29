@@ -7,6 +7,7 @@ const validate = require('../middlewares/validate');
 
 const {
     getMyProfile,
+    getUserProfile,
     updateBio,
     uploadAvatar,
     searchUsers,
@@ -21,9 +22,10 @@ const {
 
 //Exigem que o usuario esteja logado
 router.get('/me', authMiddleware, getMyProfile);
+router.get('/search', authMiddleware, searchUsers);
+router.get('/:id', authMiddleware, getUserProfile);
 router.put('/bio', authMiddleware, validate(updateBioSchema), updateBio);
 router.post('/avatar', authMiddleware, upload.single('avatar'), uploadAvatar);
-router.get('/search', authMiddleware, searchUsers);
 
 //Rotas de Seguidores
 router.post('/:id/follow', authMiddleware, toggleFollow);

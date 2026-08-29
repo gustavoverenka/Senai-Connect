@@ -5,7 +5,7 @@ const supabase = require('../config/supabase');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-// --- Schemas de Validação ---
+// Schemas de Validação
 const registerSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres'),
   username: z
@@ -32,7 +32,7 @@ const resetPasswordSchema = z.object({
   newPassword: z.string().min(6, 'A nova senha deve ter no mínimo 6 caracteres.'),
 });
 
-// --- Função Auxiliar: Configurar E-mail ---
+// Serviço de E-mail
 const getTransporter = async () => {
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         return nodemailer.createTransport({
@@ -56,7 +56,7 @@ const getTransporter = async () => {
     }
 };
 
-// --- Funções de Controller ---
+// Controllers de Autenticação
 
 const register = async (req, res) => {
   const { name, username, email, password, role } = req.body;
@@ -78,8 +78,8 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // Gera token de verificação
-    const verifyToken = crypto.randomBytes(32).toString('hex');
+    // Gera código de verificação (6 dígitos).
+    const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
 
     const { data: newUser, error: insertError } = await supabase
       .from('users')
@@ -93,28 +93,28 @@ const register = async (req, res) => {
 
     if (insertError) return res.status(500).json({ error: 'Erro ao criar conta.' });
 
-    // Dispara o e-mail de confirmação
-    const transporter = await getTransporter();
-    const verifyUrl = `http://localhost:3000/api/auth/verify-email?token=${verifyToken}`;
-
-    const info = await transporter.sendMail({
-      from: '"Equipe SENAI Connect" <suporte@senaiconnect.com>',
-      to: newUser.email,
-      subject: 'Bem-vindo! Confirme seu e-mail no SENAI Connect',
-      html: `
-        <h3>Olá, ${newUser.name}!</h3>
-        <p>Obrigado por se cadastrar no SENAI Connect.</p>
-        <p>Por favor, confirme seu endereço de e-mail clicando no link abaixo:</p>
-        <a href="${verifyUrl}" target="_blank"><strong>Confirmar meu e-mail</strong></a>
-      `
-    });
-    
-    if (!process.env.EMAIL_USER) {
-        console.log("🔔 [CONFIRMAR CONTA] URL do E-mail de Teste: %s", nodemailer.getTestMessageUrl(info));
-    }
+    // Envia o e-mail de confirmação assincronamente.
+    getTransporter().then(transporter => {
+        transporter.sendMail({
+          from: '"Equipe SENAI Connect" <suporte@senaiconnect.com>',
+          to: newUser.email,
+          subject: 'Seu Código de Verificação - SENAI Connect',
+          html: `
+            <h3>Olá, ${newUser.name}!</h3>
+            <p>Obrigado por se cadastrar no SENAI Connect.</p>
+            <p>Seu código de verificação de 6 dígitos é:</p>
+            <h1 style="font-size: 32px; letter-spacing: 5px; color: #3b82f6;">${verifyToken}</h1>
+            <p>Insira este código na tela de verificação para ativar sua conta.</p>
+          `
+        }).then(info => {
+            if (!process.env.EMAIL_USER) {
+                console.log("[CÓDIGO DE VERIFICAÇÃO] URL do E-mail de Teste: %s", require('nodemailer').getTestMessageUrl(info));
+            }
+        }).catch(err => console.error("Erro ao enviar e-mail:", err));
+    }).catch(err => console.error("Erro no Transporter:", err));
 
     return res.status(201).json({
-      message: 'Conta criada! Verifique seu e-mail para ativar a conta antes de fazer login.',
+      message: 'Conta criada! Enviamos um código de 6 dígitos para o seu e-mail.',
       user: newUser
     });
   } catch (error) {
@@ -124,17 +124,17 @@ const register = async (req, res) => {
 };
 
 const verifyEmail = async (req, res) => {
-  const { token } = req.query;
+  const { email, code } = req.body;
 
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id')
-      .eq('verify_token', token)
+      .select('id, verify_token')
+      .eq('email', email)
       .maybeSingle();
 
-    if (error || !user) {
-      return res.status(400).json({ error: 'Link de verificação inválido ou expirado.' });
+    if (error || !user || user.verify_token !== code) {
+      return res.status(400).json({ error: 'Código inválido ou e-mail incorreto.' });
     }
 
     await supabase
@@ -142,7 +142,7 @@ const verifyEmail = async (req, res) => {
       .update({ is_verified: true, verify_token: null })
       .eq('id', user.id);
 
-    return res.send('<h1>E-mail confirmado com sucesso!</h1><p>Você já pode fechar esta página e fazer login no aplicativo.</p>');
+    return res.json({ message: 'Conta ativada com sucesso! Você já pode fazer login.' });
   } catch (error) {
     console.error('Erro ao verificar e-mail:', error);
     return res.status(500).json({ error: 'Erro interno no servidor.' });
@@ -164,7 +164,7 @@ const login = async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(400).json({ error: 'E-mail ou senha incorretos' });
 
-    // Bloqueia se não verificou o email
+    // Valida o status de verificação do e-mail.
     if (!user.is_verified) {
       return res.status(401).json({ error: 'Por favor, verifique seu e-mail antes de fazer login.' });
     }
@@ -210,7 +210,7 @@ const forgotPassword = async (req, res) => {
 
     const transporter = await getTransporter();
     
-    // URL apontando para a rota de redefinicao no frontend
+    // URL de redefinição de senha.
     const resetUrl = `http://localhost:5500/pages/reset-password.html?token=${resetToken}`;
 
     const info = await transporter.sendMail({
@@ -226,7 +226,7 @@ const forgotPassword = async (req, res) => {
     });
     
     if (!process.env.EMAIL_USER) {
-        console.log("🔔 [RECUPERAR SENHA] URL do E-mail de Teste: %s", nodemailer.getTestMessageUrl(info));
+        console.log("[RECUPERAR SENHA] URL do E-mail de Teste: %s", nodemailer.getTestMessageUrl(info));
     }
 
     return res.json({ message: 'Se o e-mail existir, um link de recuperação foi enviado.' });
