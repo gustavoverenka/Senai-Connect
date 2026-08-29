@@ -6,13 +6,20 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
+
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('../docs/swagger.json');
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Documentação da API (Swagger)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rota de teste (Health Check)
 app.get('/api/status', (req, res) => {
@@ -22,9 +29,10 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Rotas de Autenticação
+// Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/messages', messageRoutes);
 
 module.exports = app;
