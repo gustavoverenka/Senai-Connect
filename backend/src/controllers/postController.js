@@ -6,6 +6,10 @@ const createPostSchema = z.object({
     content: z.string().min(1, 'O conteudo do post nao pode estar vazio').max(1000, 'Maximo de 1000 caracteres'),
 });
 
+const commentSchema = z.object({
+    content: z.string().min(1, 'O comentario nao pode estar vazio').max(500, 'Maximo de 500 caracteres'),
+});
+
 //Criar um novo post, com ou sem imagem
 const createPost = async (req, res) => {
     const { content } =  req.body;
@@ -15,7 +19,7 @@ const createPost = async (req, res) => {
         //Se o user colocou uma imagem, envia pro Storage
         if (req.file) {
             const file = req.file;
-            const fileExt = file.originalname.spli('.').pop();
+            const fileExt = file.originalname.split('.').pop();
             const fileName =  `posts/post-${req.userId}-${Date.now()}.${fileExt}`;
             const bucketName = process.env.SUPABASE_BUCKET || 'uploads';
 
@@ -90,8 +94,8 @@ const getFeed = async (req, res) => {
         }
 
         //Formata o retorno
-        const formattedPosts = posts.map((posts) => {
-            const isLikeByMe = posts.likes.some((like) => like.user_id === req.userId);
+        const formattedPosts = posts.map((post) => {
+            const isLikeByMe = post.likes.some((like) => like.user_id === req.userId);
             return {
                 id: post.id,
                 content: post.content,
@@ -159,7 +163,7 @@ const addComment = async (req, res) => {
           .insert([
             {
                 post_id: postId,
-                user_id: userId,
+                user_id: req.userId,
                 content,
             },
           ])
