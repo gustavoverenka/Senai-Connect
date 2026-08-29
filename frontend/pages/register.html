@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENAI Connect - Cadastro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/auth.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <h1 class="auth-title">Criar Conta</h1>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="name" placeholder="Ex: João da Silva" required>
+                </div>
+                <div class="form-group">
+                    <label>Nome de Usuário</label>
+                    <input type="text" id="username" placeholder="joaosilva" required>
+                </div>
+                <div class="form-group">
+                    <label>E-mail Corporativo</label>
+                    <input type="email" id="email" placeholder="joao@senai.br" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                <button type="submit" class="btn-primary">Finalizar Cadastro</button>
+            </form>
+
+            <form id="verifyForm" style="display: none;">
+                <p style="text-align:center; margin-bottom: 1.5rem; color: var(--text-light); font-size: 0.95rem;">
+                   Enviamos um código de 6 dígitos para o seu e-mail corporativo.
+                </p>
+                <div class="form-group">
+                    <label>Código de Verificação</label>
+                    <input type="text" id="verifyCode" placeholder="123456" required maxlength="6" style="text-align:center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                </div>
+                <button type="submit" class="btn-primary">Ativar Conta</button>
+            </form>
+
+            <div class="auth-links">
+                <p>Já possui uma conta? <a href="../index.html">Faça Login</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+</body>
+</html>

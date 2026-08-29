@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Perfil</title>
+    <title>SENAI Connect - Perfil do Usuário</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/navbar.css">
@@ -25,36 +25,25 @@
 
     <main class="profile-container">
         <div class="profile-card">
-            <img id="profileAvatar" class="profile-avatar" alt="Foto de perfil">
-            <h2 id="profileName">Carregando...</h2>
-            <p id="profileUsername" style="color:var(--text-light);">@...</p>
-            <p id="profileBio">Sem bio por enquanto.</p>
-        </div>
-
-        <div class="profile-edit">
-            <h3>Editar Perfil</h3>
-            <div class="form-group">
-                <label>Bio (máx. 250 caracteres)</label>
-                <textarea id="bioInput" rows="2" maxlength="250" placeholder="Conte algo sobre você..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Foto de Perfil</label>
-                <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp">
-            </div>
-            <div class="profile-actions">
-                <button class="btn-primary" onclick="updateBio()">Salvar Bio</button>
-                <button class="btn-secondary" onclick="uploadAvatar()">Enviar Foto</button>
+            <img id="userAvatar" class="profile-avatar" alt="Foto de perfil">
+            <h2 id="userName">Carregando...</h2>
+            <p id="userUsername" style="color:var(--text-light);">@...</p>
+            <p id="userBio">Sem bio por enquanto.</p>
+            
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                <button id="followBtn" class="btn-primary" onclick="toggleFollowUser()" style="display:none; width: auto; padding: 10px 20px;">Seguir</button>
+                <button id="msgBtn" class="btn-secondary" onclick="window.location.href='chat.html?id=' + userId" style="display:none; width: auto; padding: 10px 20px;">Mandar Mensagem</button>
             </div>
         </div>
 
         <div class="connections">
             <button class="btn-secondary" onclick="loadConnections('followers')">Ver Seguidores</button>
             <button class="btn-secondary" onclick="loadConnections('following')">Ver Seguindo</button>
-            <div id="connectionList"><p style="color:var(--text-light);">Clique em um botão para ver suas conexões.</p></div>
+            <div id="connectionList"><p style="color:var(--text-light);">Clique em um botão para ver as conexões.</p></div>
         </div>
     </main>
 
     <script src="../js/api.js"></script>
-    <script src="../js/profile.js"></script>
+    <script src="../js/user.js"></script>
 </body>
 </html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENAI Connect - Mensagens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/navbar.css">
+    <style>
+        .inbox-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+        .inbox-header {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+        .inbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .inbox-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 1rem;
+            border-radius: 8px;
+            background: var(--background);
+            text-decoration: none;
+            color: var(--text);
+            transition: transform 0.2s;
+        }
+        .inbox-item:hover {
+            transform: translateY(-2px);
+            background: #f8fafc;
+        }
+        .inbox-item .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .inbox-info {
+            flex: 1;
+        }
+        .inbox-info h4 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        .inbox-info p {
+            margin: 5px 0 0;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 400px;
+        }
+        .unread-dot {
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="brand">SENAI Connect</div>
+            <div class="nav-links">
+                <a href="feed.html">Feed</a>
+                <a href="profile.html">Perfil</a>
+                <a href="search.html">Buscar</a>
+                <a href="inbox.html" style="font-weight:600; color:var(--primary);">Mensagens</a>
+                <button onclick="logout()">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="inbox-container">
+        <div class="inbox-header">
+            <h2>Mensagens</h2>
+        </div>
+        <div class="inbox-list" id="inboxList">
+            <p style="text-align:center; color:var(--text-light);">Carregando mensagens...</p>
+        </div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/inbox.js"></script>
+</body>
+</html>

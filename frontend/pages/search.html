@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENAI Connect - Buscar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/navbar.css">
+    <link rel="stylesheet" href="../css/search.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="brand">SENAI Connect</div>
+            <div class="nav-links">
+                <a href="feed.html">Feed</a>
+                <a href="profile.html">Perfil</a>
+                <a href="search.html">Buscar</a>
+                <a href="inbox.html">Mensagens</a>
+                <button onclick="logout()">Sair da Conta</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="search-container">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Buscar por nome ou usuário...">
+            <button id="searchBtn" class="btn-primary">Buscar</button>
+        </div>
+        <div id="userResults">
+            
+        </div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/search.js"></script>
+</body>
+</html>
