@@ -1,4 +1,4 @@
-const { getInbox } = require('./src/controllers/messageController');
+const { getInbox } = require('../controllers/messageController');
 async function test() {
   const req = { userId: 1 };
   const res = {
