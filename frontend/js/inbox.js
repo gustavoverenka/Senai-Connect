@@ -34,4 +34,8 @@ async function loadInbox() {
     }
 }
 
-window.addEventListener('DOMContentLoaded', loadInbox);
+window.addEventListener('DOMContentLoaded', () => {
+    loadInbox();
+    // Atualiza a lista de conversas a cada 5 segundos
+    setInterval(loadInbox, 5000);
+});
