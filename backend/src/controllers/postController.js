@@ -1,214 +1,220 @@
 const { z } = require('zod');
-const supabase = require('../config/supabase');
+const { db, admin } = require('../config/firebase');
 
-// Schema de validação para publicações e comentários.
+// Schemas de validação
 const createPostSchema = z.object({
-    content: z.string().min(1, 'O conteudo do post nao pode estar vazio').max(1000, 'Maximo de 1000 caracteres'),
+  content: z.string().min(1, 'O conteudo do post nao pode estar vazio').max(1000, 'Maximo de 1000 caracteres'),
 });
 
 const commentSchema = z.object({
-    content: z.string().min(1, 'O comentario nao pode estar vazio').max(500, 'Maximo de 500 caracteres'),
+  content: z.string().min(1, 'O comentario nao pode estar vazio').max(500, 'Maximo de 500 caracteres'),
 });
 
-// Cria uma nova publicação.
+// Cria uma nova publicação
 const createPost = async (req, res) => {
-    const { content } =  req.body;
-    let imageUrl = '';
+  const { content } = req.body;
+  let imageUrl = '';
 
-    try {
-        // Processa o upload de imagem, se fornecida.
-        if (req.file) {
-            const file = req.file;
-            const avatarUrl = `http://localhost:3000/uploads/${file.filename}`;
-            imageUrl = avatarUrl;
-        }
-
-        // Persiste a publicação no banco de dados.
-        const { data: post, error: insertError } = await supabase
-          .from('posts')
-          .insert([
-            {
-                user_id: req.userId,
-                content,
-                image: imageUrl,
-            },
-          ])
-          .select('id, content, image, created_at, author:users!posts_user_id_fkey(id, name, username, role, profile_picture)')
-          .single();
-
-        if (insertError) {
-            return res.status(500).json({ error: 'Erro ao enviar post.'});
-        }
-
-        return res.status(201).json({
-            message: 'Post publicado com sucesso!',
-            post,
-        });
-    } catch (error) {
-        console.error('Erro ao criar post:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
+  try {
+    if (req.file) {
+      const file = req.file;
+      imageUrl = `http://localhost:3000/uploads/${file.filename}`;
     }
+
+    // Busca os dados do autor
+    const userDoc = await db.collection('users').doc(req.userId).get();
+    const userData = userDoc.data() || {};
+
+    const author = {
+      id: req.userId,
+      name: userData.name || '',
+      username: userData.username || '',
+      role: userData.role || 'aluno',
+      profile_picture: userData.profile_picture || ''
+    };
+
+    const newPostData = {
+      user_id: req.userId,
+      content,
+      image: imageUrl,
+      author,
+      likesCount: 0,
+      commentsCount: 0,
+      created_at: new Date().toISOString()
+    };
+
+    const postRef = await db.collection('posts').add(newPostData);
+
+    return res.status(201).json({
+      message: 'Post publicado com sucesso!',
+      post: { id: postRef.id, ...newPostData }
+    });
+  } catch (error) {
+    console.error('Erro ao criar post:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Retorna o feed de publicações.
+// Retorna o feed de publicações
 const getFeed = async (req, res) => {
-    try {
-        const { data: posts, error} =  await supabase
-          .from('posts')
-          .select(`
-            id,
-            content,
-            image,
-            created_at,
-            author: users!posts_user_id_fkey (id, name, username, role, profile_picture),
-            likes (user_id),
-            comments (
-            id,
-            content,
-            created_at,
-            user:users (id, name, username, profile_picture)
-            )
-          `)
-          .order('created_at', { ascending: false});
+  try {
+    const postsSnapshot = await db.collection('posts').orderBy('created_at', 'desc').get();
 
-        if (error) {
-            return res.status(500).json({ error: 'Erro ao carregar o feed.'});
-        }
-
-        // Estrutura o payload de resposta.
-        const formattedPosts = posts.map((post) => {
-            const isLikeByMe = post.likes.some((like) => like.user_id === req.userId);
-            return {
-                id: post.id,
-                content: post.content,
-                image: post.image,
-                createdAt: post.created_at,
-                author: post.author,
-                likesCount: post.likes.length,
-                isLikeByMe,
-                commentsCount: post.comments.length,
-                comments: post.comments,
-            };
-        });
-
-        return res.json({ feed: formattedPosts });
-    } catch (error) {
-        console.error('Erro ao buscar feed:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
+    if (postsSnapshot.empty) {
+      return res.json({ feed: [] });
     }
+
+    // Busca as curtidas do usuário atual
+    const myLikesSnapshot = await db.collection('likes')
+      .where('user_id', '==', req.userId)
+      .get();
+    const myLikedPostIds = new Set(myLikesSnapshot.docs.map(doc => doc.data().post_id));
+
+    // Busca todos os comentários
+    const commentsSnapshot = await db.collection('comments').orderBy('created_at', 'asc').get();
+    const commentsByPost = {};
+    commentsSnapshot.forEach(doc => {
+      const comment = { id: doc.id, ...doc.data() };
+      if (!commentsByPost[comment.post_id]) {
+        commentsByPost[comment.post_id] = [];
+      }
+      commentsByPost[comment.post_id].push(comment);
+    });
+
+    const formattedPosts = postsSnapshot.docs.map(doc => {
+      const post = doc.data();
+      const postId = doc.id;
+      const comments = commentsByPost[postId] || [];
+
+      return {
+        id: postId,
+        content: post.content,
+        image: post.image || '',
+        createdAt: post.created_at,
+        author: post.author,
+        likesCount: post.likesCount || 0,
+        isLikeByMe: myLikedPostIds.has(postId),
+        commentsCount: comments.length || post.commentsCount || 0,
+        comments
+      };
+    });
+
+    return res.json({ feed: formattedPosts });
+  } catch (error) {
+    console.error('Erro ao buscar feed:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Alterna o status de curtida da publicação.
+// Alterna curtida
 const toggleLike = async (req, res) => {
-    const postId = parseInt(req.params.id, 10);
+  const postId = req.params.id;
 
-    try {
-        // Verifica curtida existente.
-        const { data: existingLike } = await supabase
-          .from('likes')
-          .select('*')
-          .eq('user_id', req.userId)
-          .eq('post_id', postId)
-          .maybeSingle();
+  try {
+    const existingLikeQuery = await db.collection('likes')
+      .where('user_id', '==', req.userId)
+      .where('post_id', '==', postId)
+      .limit(1)
+      .get();
 
-        if (existingLike) {
-            // Remove curtida.
-            await supabase
-              .from('likes')
-              .delete()
-              .eq('user_id', req.userId)
-              .eq('post_id', postId);
+    const postRef = db.collection('posts').doc(postId);
 
-            return res.json({ message: 'Curtida removida.', liked: false });
-        } else {
-            // Adiciona curtida.
-            await supabase
-              .from('likes')
-              .insert([{ user_id: req.userId, post_id: postId }]);
-
-            return res.json({ message: 'Post curtido com sucesso!', liked: true});
-        }
-    } catch (error) {
-        console.error('Erro ao curtir post:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.' });
+    if (!existingLikeQuery.empty) {
+      // Remove curtida
+      await existingLikeQuery.docs[0].ref.delete();
+      await postRef.update({
+        likesCount: admin.firestore.FieldValue.increment(-1)
+      });
+      return res.json({ message: 'Curtida removida.', liked: false });
+    } else {
+      // Adiciona curtida
+      await db.collection('likes').add({
+        user_id: req.userId,
+        post_id: postId,
+        created_at: new Date().toISOString()
+      });
+      await postRef.update({
+        likesCount: admin.firestore.FieldValue.increment(1)
+      });
+      return res.json({ message: 'Post curtido com sucesso!', liked: true });
     }
+  } catch (error) {
+    console.error('Erro ao curtir post:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Adiciona um comentário à publicação.
+// Adiciona um comentário
 const addComment = async (req, res) => {
-    const postId = parseInt(req.params.id, 10);
-    const { content } = req.body;
+  const postId = req.params.id;
+  const { content } = req.body;
 
-    try {
-        const { data: comment, error } = await supabase
-          .from('comments')
-          .insert([
-            {
-                post_id: postId,
-                user_id: req.userId,
-                content,
-            },
-          ])
-          .select('id, content, created_at, user:users(id, name, username, profile_picture)')
-          .single();
+  try {
+    const userDoc = await db.collection('users').doc(req.userId).get();
+    const userData = userDoc.data() || {};
 
-        if (error) {
-            return res.status(500).json({ error: 'Erro ao salvar comentario.' });   
-        }
+    const commentData = {
+      post_id: postId,
+      user_id: req.userId,
+      content,
+      user: {
+        id: req.userId,
+        name: userData.name || '',
+        username: userData.username || '',
+        profile_picture: userData.profile_picture || ''
+      },
+      created_at: new Date().toISOString()
+    };
 
-        return res.status(201).json({
-            message: 'Comentario adicionado com sucesso!',
-            comment,
-        });
-    } catch (error) {
-        console.error('Erro ao comentar:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
-    }
+    const commentRef = await db.collection('comments').add(commentData);
+
+    await db.collection('posts').doc(postId).update({
+      commentsCount: admin.firestore.FieldValue.increment(1)
+    });
+
+    return res.status(201).json({
+      message: 'Comentario adicionado com sucesso!',
+      comment: { id: commentRef.id, ...commentData }
+    });
+  } catch (error) {
+    console.error('Erro ao comentar:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Remove a publicação (requer permissão de autor ou administrador).
+// Deleta post
 const deletePost = async (req, res) => {
-    const postId = parseInt(req.params.id, 10);
+  const postId = req.params.id;
 
-    try {
-        //Busca o post para verficar o dono
-        const { data: post, error: findError } = await supabase
-          .from('posts')
-          .select('id, user_id')
-          .eq('id', postId)
-          .maybeSingle();
-          
-        if (findError || !post) {
-            return res.status(404).json({ error: 'Post nao encontrado.'});
-        } 
+  try {
+    const postRef = db.collection('posts').doc(postId);
+    const postDoc = await postRef.get();
 
-        //So o author ou admin pode deletar o post
-        if (post.user_id !== req.userId && req.userRole !== 'admin') {
-            return res.status(403).json({ error: 'Sem permissao para deletar esse post.'});
-        }
-
-        const { error: deleteError } = await supabase
-          .from('posts')
-          .delete()
-          .eq('id', postId);
-          
-        if (deleteError) {
-            return res.status(500).json({ error: 'Erro ao deletar o post.'});
-        }
-
-        return res.json({ message: 'Post deletado com sucesso!'});
-    } catch (error) {
-        console.error('Erro ao deletar post:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
+    if (!postDoc.exists) {
+      return res.status(404).json({ error: 'Post nao encontrado.' });
     }
+
+    const post = postDoc.data();
+
+    if (post.user_id !== req.userId && req.userRole !== 'admin') {
+      return res.status(403).json({ error: 'Sem permissao para deletar esse post.' });
+    }
+
+    await postRef.delete();
+
+    return res.json({ message: 'Post deletado com sucesso!' });
+  } catch (error) {
+    console.error('Erro ao deletar post:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
 module.exports = {
-    createPost,
-    getFeed,
-    toggleLike,
-    addComment,
-    deletePost,
-    createPostSchema,
-    commentSchema,
+  createPost,
+  getFeed,
+  toggleLike,
+  addComment,
+  deletePost,
+  createPostSchema,
+  commentSchema,
 };

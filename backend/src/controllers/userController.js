@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const supabase = require('../config/supabase');
+const { db } = require('../config/firebase');
 
 const updateBioSchema = z.object({
   bio: z.string().max(250, 'A bio não pode ultrapassar 250 caracteres'),
@@ -7,17 +7,15 @@ const updateBioSchema = z.object({
 
 const getMyProfile = async (req, res) => {
   try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, name, username, email, role, bio, profile_picture, created_at')
-      .eq('id', req.userId)
-      .single();
+    const userDoc = await db.collection('users').doc(req.userId).get();
 
-    if (error || !user) {
+    if (!userDoc.exists) {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
     }
 
-    return res.json({ user });
+    const { password, verify_token, reset_token, reset_token_expires, ...user } = userDoc.data();
+
+    return res.json({ user: { id: userDoc.id, ...user } });
   } catch (error) {
     console.error('Erro ao buscar perfil:', error);
     return res.status(500).json({ error: 'Erro interno no servidor.' });
@@ -25,27 +23,28 @@ const getMyProfile = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
-  const targetId = parseInt(req.params.id, 10);
-  try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, name, username, role, bio, profile_picture, created_at')
-      .eq('id', targetId)
-      .single();
+  const targetId = req.params.id;
 
-    if (error || !user) {
+  try {
+    const userDoc = await db.collection('users').doc(targetId).get();
+
+    if (!userDoc.exists) {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
     }
 
-    // verifica se ta seguindo
-    const { data: follow } = await supabase
-      .from('follows')
-      .select('*')
-      .eq('follower_id', req.userId)
-      .eq('following_id', targetId)
-      .maybeSingle();
+    // Verifica se já está seguindo
+    const followSnap = await db.collection('follows')
+      .where('follower_id', '==', req.userId)
+      .where('following_id', '==', targetId)
+      .limit(1)
+      .get();
 
-    return res.json({ user, isFollowing: !!follow });
+    const { password, verify_token, reset_token, reset_token_expires, ...user } = userDoc.data();
+
+    return res.json({
+      user: { id: userDoc.id, ...user },
+      isFollowing: !followSnap.empty
+    });
   } catch (error) {
     console.error('Erro ao buscar perfil:', error);
     return res.status(500).json({ error: 'Erro interno no servidor.' });
@@ -56,20 +55,15 @@ const updateBio = async (req, res) => {
   const { bio } = req.body;
 
   try {
-    const { data: updatedUser, error } = await supabase
-      .from('users')
-      .update({ bio })
-      .eq('id', req.userId)
-      .select('id, name, username, email, role, bio, profile_picture')
-      .single();
+    const userRef = db.collection('users').doc(req.userId);
+    await userRef.update({ bio });
 
-    if (error) {
-      return res.status(500).json({ error: 'Erro ao atualizar bio.' });
-    }
+    const updatedDoc = await userRef.get();
+    const { password, verify_token, reset_token, reset_token_expires, ...updatedUser } = updatedDoc.data();
 
     return res.json({
       message: 'Bio atualizada com sucesso!',
-      user: updatedUser,
+      user: { id: updatedDoc.id, ...updatedUser },
     });
   } catch (error) {
     console.error('Erro ao atualizar bio:', error);
@@ -84,24 +78,18 @@ const uploadAvatar = async (req, res) => {
     }
 
     const file = req.file;
-    // URL para o arquivo salvo localmente
     const avatarUrl = `http://localhost:3000/uploads/${file.filename}`;
 
-    const { data: user, error: dbError } = await supabase
-      .from('users')
-      .update({ profile_picture: avatarUrl })
-      .eq('id', req.userId)
-      .select('id, name, username, email, role, bio, profile_picture')
-      .single();
+    const userRef = db.collection('users').doc(req.userId);
+    await userRef.update({ profile_picture: avatarUrl });
 
-    if (dbError) {
-      return res.status(500).json({ error: 'Erro ao vincular a foto ao perfil.' });
-    }
+    const updatedDoc = await userRef.get();
+    const { password, verify_token, reset_token, reset_token_expires, ...user } = updatedDoc.data();
 
     return res.json({
       message: 'Foto de perfil atualizada com sucesso!',
       profile_picture: avatarUrl,
-      user,
+      user: { id: updatedDoc.id, ...user },
     });
   } catch (error) {
     console.error('Erro no upload do avatar:', error);
@@ -110,24 +98,34 @@ const uploadAvatar = async (req, res) => {
 };
 
 const searchUsers = async (req, res) => {
-  const query = req.query.q || '';
+  const query = (req.query.q || '').trim().toLowerCase();
 
-  if (!query.trim()) {
+  if (!query) {
     return res.json({ users: [] });
   }
 
   try {
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('id, name, username, role, bio, profile_picture')
-      .or(`name.ilike.%${query}%,username.ilike.%${query}%`)
-      .limit(20);
+    const snapshot = await db.collection('users').limit(50).get();
 
-    if (error) {
-      return res.status(500).json({ error: 'Erro ao buscar usuários.' });
-    }
+    const users = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const name = (data.name || '').toLowerCase();
+      const username = (data.username || '').toLowerCase();
 
-    return res.json({ users });
+      if (name.includes(query) || username.includes(query)) {
+        users.push({
+          id: doc.id,
+          name: data.name,
+          username: data.username,
+          role: data.role,
+          bio: data.bio || '',
+          profile_picture: data.profile_picture || ''
+        });
+      }
+    });
+
+    return res.json({ users: users.slice(0, 20) });
   } catch (error) {
     console.error('Erro na busca de usuários:', error);
     return res.status(500).json({ error: 'Erro interno no servidor.' });

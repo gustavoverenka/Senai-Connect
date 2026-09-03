@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
-const supabase = require('../config/supabase');
+const { db } = require('../config/firebase');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
@@ -62,38 +62,47 @@ const register = async (req, res) => {
   const { name, username, email, password, role } = req.body;
 
   try {
-    const { data: existingUser, error: checkError } = await supabase
-      .from('users')
-      .select('id, email, username')
-      .or(`email.eq.${email},username.eq.${username}`)
-      .maybeSingle();
+    // Verifica e-mail ou username duplicados no Firestore
+    const emailCheck = await db.collection('users').where('email', '==', email).limit(1).get();
+    if (!emailCheck.empty) {
+      return res.status(400).json({ error: 'E-mail já cadastrado.' });
+    }
 
-    if (checkError) return res.status(500).json({ error: 'Erro ao verificar disponibilidade.' });
-
-    if (existingUser) {
-      if (existingUser.email === email) return res.status(400).json({ error: 'E-mail já cadastrado.' });
-      if (existingUser.username === username) return res.status(400).json({ error: 'Username já em uso.' });
+    const usernameCheck = await db.collection('users').where('username', '==', username).limit(1).get();
+    if (!usernameCheck.empty) {
+      return res.status(400).json({ error: 'Username já em uso.' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // Gera código de verificação (6 dígitos).
+    // Gera código de verificação (6 dígitos)
     const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const { data: newUser, error: insertError } = await supabase
-      .from('users')
-      .insert([{
-          name, username, email, password: hashedPassword,
-          role: role || 'aluno', bio: '', profile_picture: '',
-          is_verified: false, verify_token: verifyToken
-      }])
-      .select('id, name, username, email, is_verified')
-      .single();
+    const userData = {
+      name,
+      username,
+      email,
+      password: hashedPassword,
+      role: role || 'aluno',
+      bio: '',
+      profile_picture: '',
+      is_verified: false,
+      verify_token: verifyToken,
+      created_at: new Date().toISOString()
+    };
 
-    if (insertError) return res.status(500).json({ error: 'Erro ao criar conta.' });
+    const docRef = await db.collection('users').add(userData);
 
-    // Envia o e-mail de confirmação assincronamente.
+    const newUser = {
+      id: docRef.id,
+      name,
+      username,
+      email,
+      is_verified: false
+    };
+
+    // Envia o e-mail de confirmação assincronamente
     getTransporter().then(transporter => {
         transporter.sendMail({
           from: '"Equipe SENAI Connect" <suporte@senaiconnect.com>',
@@ -127,20 +136,20 @@ const verifyEmail = async (req, res) => {
   const { email, code } = req.body;
 
   try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, verify_token')
-      .eq('email', email)
-      .maybeSingle();
+    const snapshot = await db.collection('users').where('email', '==', email).limit(1).get();
 
-    if (error || !user || user.verify_token !== code) {
+    if (snapshot.empty) {
       return res.status(400).json({ error: 'Código inválido ou e-mail incorreto.' });
     }
 
-    await supabase
-      .from('users')
-      .update({ is_verified: true, verify_token: null })
-      .eq('id', user.id);
+    const doc = snapshot.docs[0];
+    const userData = doc.data();
+
+    if (userData.verify_token !== code) {
+      return res.status(400).json({ error: 'Código inválido ou e-mail incorreto.' });
+    }
+
+    await doc.ref.update({ is_verified: true, verify_token: null });
 
     return res.json({ message: 'Conta ativada com sucesso! Você já pode fazer login.' });
   } catch (error) {
@@ -153,18 +162,20 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const { data: user, error: findError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
+    const snapshot = await db.collection('users').where('email', '==', email).limit(1).get();
 
-    if (findError || !user) return res.status(400).json({ error: 'E-mail ou senha incorretos' });
+    if (snapshot.empty) {
+      return res.status(400).json({ error: 'E-mail ou senha incorretos' });
+    }
+
+    const doc = snapshot.docs[0];
+    const user = { id: doc.id, ...doc.data() };
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) return res.status(400).json({ error: 'E-mail ou senha incorretos' });
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'E-mail ou senha incorretos' });
+    }
 
-    // Valida o status de verificação do e-mail.
     if (!user.is_verified) {
       return res.status(401).json({ error: 'Por favor, verifique seu e-mail antes de fazer login.' });
     }
@@ -192,25 +203,21 @@ const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, email, name')
-      .eq('email', email)
-      .maybeSingle();
+    const snapshot = await db.collection('users').where('email', '==', email).limit(1).get();
 
-    if (error || !user) return res.json({ message: 'Se o e-mail existir, um link de recuperação foi enviado.' });
+    if (snapshot.empty) {
+      return res.json({ message: 'Se o e-mail existir, um link de recuperação foi enviado.' });
+    }
+
+    const doc = snapshot.docs[0];
+    const user = { id: doc.id, ...doc.data() };
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const expireTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    await supabase
-      .from('users')
-      .update({ reset_token: resetToken, reset_token_expires: expireTime })
-      .eq('id', user.id);
+    await doc.ref.update({ reset_token: resetToken, reset_token_expires: expireTime });
 
     const transporter = await getTransporter();
-    
-    // URL de redefinição de senha.
     const resetUrl = `http://localhost:5500/pages/reset-password.html?token=${resetToken}`;
 
     const info = await transporter.sendMail({
@@ -240,25 +247,29 @@ const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
 
   try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, reset_token_expires')
-      .eq('reset_token', token)
-      .maybeSingle();
+    const snapshot = await db.collection('users').where('reset_token', '==', token).limit(1).get();
 
-    if (error || !user) return res.status(400).json({ error: 'Token inválido ou não encontrado.' });
+    if (snapshot.empty) {
+      return res.status(400).json({ error: 'Token inválido ou não encontrado.' });
+    }
+
+    const doc = snapshot.docs[0];
+    const user = doc.data();
 
     const now = new Date();
     const expireDate = new Date(user.reset_token_expires);
-    if (now > expireDate) return res.status(400).json({ error: 'Este token já expirou.' });
+    if (now > expireDate) {
+      return res.status(400).json({ error: 'Este token já expirou.' });
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    await supabase
-      .from('users')
-      .update({ password: hashedPassword, reset_token: null, reset_token_expires: null })
-      .eq('id', user.id);
+    await doc.ref.update({
+      password: hashedPassword,
+      reset_token: null,
+      reset_token_expires: null
+    });
 
     return res.json({ message: 'Senha redefinida com sucesso! Você já pode fazer login.' });
   } catch (error) {

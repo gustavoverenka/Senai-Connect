@@ -1,126 +1,127 @@
-const supabase = require('../config/supabase');
+const { db } = require('../config/firebase');
 
-// Alterna o status de seguidor.
+// Alterna o status de seguidor
 const toggleFollow = async (req, res) => {
-    const followingId = parseInt(req.params.id, 10);
-    const followerId = req.userId; // Extraído do token JWT.
+  const followingId = req.params.id;
+  const followerId = req.userId;
 
-    if (followingId === followerId) {
-        return res.status(400).json({ error: 'Voce nao pode seguir a si mesmo.'});
+  if (followingId === followerId) {
+    return res.status(400).json({ error: 'Voce nao pode seguir a si mesmo.' });
+  }
+
+  try {
+    const targetDoc = await db.collection('users').doc(followingId).get();
+    if (!targetDoc.exists) {
+      return res.status(404).json({ error: 'Usuario nao encontrado.' });
     }
 
-    try {
-        // Valida a existência do usuário alvo.
-        const { data: target, error: targetError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('id', followingId)
-          .maybeSingle();
+    const existingFollow = await db.collection('follows')
+      .where('follower_id', '==', followerId)
+      .where('following_id', '==', followingId)
+      .limit(1)
+      .get();
 
-        if (targetError || !target) {
-            return res.status(404).json({ error: 'Usuario nao encontrado.'});
-        }
-
-        // Verifica vínculo existente.
-        const { data: existingFollow } = await supabase
-          .from('follows')
-          .select('*')
-          .eq('follower_id', followerId)
-          .eq('following_id', followingId)
-          .maybeSingle();
-
-        if (existingFollow) {
-            // Remove vínculo de seguidor.
-            await supabase
-              .from('follows')
-              .delete()
-              .eq('follower_id', followerId)
-              .eq('following_id', followingId);
-
-            return res.json({ message: 'Voce deixou de seguir este usuario.', following: false});
-        } else {
-            // Cria vínculo de seguidor.
-            const { error: insertError } = await supabase
-              .from('follows')
-              .insert([{ follower_id: followerId, following_id: followingId }]);
-              
-            if (insertError) {
-                console.error("Erro insert follow", insertError);
-                return res.status(500).json({ error: 'Erro ao seguir.' });
-            }
-
-            return res.json({ message: 'Voce esta seguindo este usuario agora!', following: true });
-        }
-    } catch (error) {
-        console.error('Erro no follow', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
+    if (!existingFollow.empty) {
+      // Deixar de seguir
+      await existingFollow.docs[0].ref.delete();
+      return res.json({ message: 'Voce deixou de seguir este usuario.', following: false });
+    } else {
+      // Seguir
+      await db.collection('follows').add({
+        follower_id: followerId,
+        following_id: followingId,
+        created_at: new Date().toISOString()
+      });
+      return res.json({ message: 'Voce esta seguindo este usuario agora!', following: true });
     }
+  } catch (error) {
+    console.error('Erro no follow:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Retorna a lista de seguidores.
+// Retorna a lista de seguidores
 const getFollowers = async (req, res) => {
-    const userId = parseInt(req.params.id, 10);
+  const userId = req.params.id;
 
-    try {
-        const { data: follows, error } = await supabase
-          .from('follows')
-          .select('follower_id')
-          .eq('following_id', userId);
+  try {
+    const followsSnap = await db.collection('follows')
+      .where('following_id', '==', userId)
+      .get();
 
-        if (error) throw error;
+    const followerIds = followsSnap.docs.map(doc => doc.data().follower_id);
 
-        // Extrai array de identificadores.
-        const followerIds = follows.map(f => f.follower_id);
-
-        if (followerIds.length === 0) {
-            return res.json({ followers: [] });
-        }
-
-        // Obtém os perfis correspondentes.
-        const { data: users } = await supabase
-          .from('users')
-          .select('id, name, username, profile_picture, role, bio')
-          .in('id', followerIds);
-
-        return res.json({ followers: users });
-    } catch (error) {
-        console.error('Erro ao buscar seguidos:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.' });
+    if (followerIds.length === 0) {
+      return res.json({ followers: [] });
     }
+
+    const userDocs = await Promise.all(
+      followerIds.map(id => db.collection('users').doc(id).get())
+    );
+
+    const users = userDocs
+      .filter(doc => doc.exists)
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          username: data.username,
+          profile_picture: data.profile_picture || '',
+          role: data.role,
+          bio: data.bio || ''
+        };
+      });
+
+    return res.json({ followers: users });
+  } catch (error) {
+    console.error('Erro ao buscar seguidores:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Retorna a lista de usuários seguidos.
+// Retorna a lista de seguidos
 const getFollowing = async (req, res) => {
-    const userId = parseInt(req.params.id, 10);
+  const userId = req.params.id;
 
-    try {
-        const { data: follows, error } = await supabase
-            .from('follows')
-            .select('following_id')
-            .eq('follower_id', userId);
+  try {
+    const followsSnap = await db.collection('follows')
+      .where('follower_id', '==', userId)
+      .get();
 
-        if (error) throw error;
+    const followingIds = followsSnap.docs.map(doc => doc.data().following_id);
 
-        const followingIds = follows.map(f => f.following_id);
-        
-        if (followingIds.length === 0) {
-            return res.json({ following: [] });
-        }
-
-        const { data: users } = await supabase
-            .from('users')
-            .select('id, name, username, profile_picture, role, bio')
-            .in('id', followingIds);
-
-        return res.json({ following: users });
-    } catch (error) {
-        console.error('Erro ao buscar seguidos:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.' });
+    if (followingIds.length === 0) {
+      return res.json({ following: [] });
     }
+
+    const userDocs = await Promise.all(
+      followingIds.map(id => db.collection('users').doc(id).get())
+    );
+
+    const users = userDocs
+      .filter(doc => doc.exists)
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          username: data.username,
+          profile_picture: data.profile_picture || '',
+          role: data.role,
+          bio: data.bio || ''
+        };
+      });
+
+    return res.json({ following: users });
+  } catch (error) {
+    console.error('Erro ao buscar seguidos:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
 module.exports = {
-    toggleFollow,
-    getFollowers,
-    getFollowing,
+  toggleFollow,
+  getFollowers,
+  getFollowing,
 };

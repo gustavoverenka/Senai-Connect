@@ -1,131 +1,169 @@
-const supabase =  require('../config/supabase');
+const { db } = require('../config/firebase');
 const { z } = require('zod');
 
-// Schema de validação de mensagem.
+// Schema de validação de mensagem
 const sendMessageSchema = z.object({
-    content: z.string().min(1, 'A mensagem nao pode estar vazia.').max(2000, 'A mensagem nao pode ter mais de 2000 caracteres.'),
+  content: z.string().min(1, 'A mensagem nao pode estar vazia.').max(2000, 'A mensagem nao pode ter mais de 2000 caracteres.'),
 });
 
-// Envia uma nova mensagem direta.
+// Envia uma nova mensagem direta
 const sendMessage = async (req, res) => {
-    const receiverId = parseInt(req.params.id, 10);
-    const senderId = req.userId;
-    const { content } = req.body;
+  const receiverId = req.params.id;
+  const senderId = req.userId;
+  const { content } = req.body;
 
-    if (receiverId === senderId) {
-        return res.status(400).json({ error: 'Nao e permitido enviar mensagem para si mesmo.'});
+  if (receiverId === senderId) {
+    return res.status(400).json({ error: 'Nao e permitido enviar mensagem para si mesmo.' });
+  }
+
+  try {
+    const receiverDoc = await db.collection('users').doc(receiverId).get();
+    if (!receiverDoc.exists) {
+      return res.status(404).json({ error: 'Usuario destinatario nao encontrado.' });
     }
 
-    try {
-        // Valida a existência do destinatário.
-        const { data: receiver, error: checkError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('id', receiverId)
-          .maybeSingle();
+    const messageData = {
+      sender_id: senderId,
+      receiver_id: receiverId,
+      content,
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
 
-        if (checkError || !receiver) {
-            return res.status(404).json({ error: 'Usuario destinatario nao encontrado.'});
-        }
+    const msgRef = await db.collection('messages').add(messageData);
 
-        const { data: message, error: insertError } = await supabase
-          .from('messages')
-          .insert([{ sender_id: senderId, receiver_id: receiverId, content }])
-          .select()
-          .single();
-          
-        if (insertError) {
-            return res.status(500).json({ error: 'Erro ao registrar a mensagem no banco de dados.'});
-        }
-        
-        return res.status(201).json({ message: 'Mensagem enviada com sucesso.', data: message });
-    } catch (error) {
-        console.error('Erro no sendMessage:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
-    }
+    return res.status(201).json({
+      message: 'Mensagem enviada com sucesso.',
+      data: { id: msgRef.id, ...messageData }
+    });
+  } catch (error) {
+    console.error('Erro no sendMessage:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Retorna o histórico da conversa.
+// Retorna o histórico da conversa
 const getConversation = async (req, res) => {
-    const otherUserId = parseInt(req.params.id, 10);
-    const myId = req.userId;
+  const otherUserId = req.params.id;
+  const myId = req.userId;
 
-    try {
-        // Confere se o outro usuario existe
-        const { data: other, error: checkError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('id', otherUserId)
-          .maybeSingle();
-
-        if (checkError || !other) {
-            return res.status(404).json({ error: 'Usuario nao encontrado.'});
-        }
-
-        // Obtém as mensagens trocadas.
-        const { data: messages, error } = await supabase
-          .from('messages')
-          .select('*')
-          .or(`and(sender_id.eq.${myId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${myId})`)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-            return res.status(500).json({ error: 'Erro ao carregar o historico da conversa.'});
-        }
-
-        // Identifica mensagens não lidas.
-        const unreadIds = messages
-          .filter(m => m.sender_id === otherUserId && m.is_read === false)
-          .map(m => m.id);
-
-        // Atualiza o status de leitura.
-        if (unreadIds.length > 0) {
-            await supabase.from('messages').update({ is_read: true}).in('id', unreadIds);
-        }
-
-        return res.json({ conversation: messages });
-    } catch (error) {
-        console.error('Erro no getConversation:', error);
-        return res.status(500).json({ error: 'Erro interno no servidor.'});
+  try {
+    const otherDoc = await db.collection('users').doc(otherUserId).get();
+    if (!otherDoc.exists) {
+      return res.status(404).json({ error: 'Usuario nao encontrado.' });
     }
+
+    // Busca mensagens enviadas por mim e recebidas por mim
+    const [sentSnap, receivedSnap] = await Promise.all([
+      db.collection('messages')
+        .where('sender_id', '==', myId)
+        .where('receiver_id', '==', otherUserId)
+        .get(),
+      db.collection('messages')
+        .where('sender_id', '==', otherUserId)
+        .where('receiver_id', '==', myId)
+        .get()
+    ]);
+
+    const messages = [];
+    const unreadDocs = [];
+
+    sentSnap.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+    receivedSnap.forEach(doc => {
+      const data = doc.data();
+      messages.push({ id: doc.id, ...data });
+      if (!data.is_read) {
+        unreadDocs.push(doc.ref);
+      }
+    });
+
+    // Ordena as mensagens por data de envio
+    messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    // Marca mensagens não lidas como lidas
+    if (unreadDocs.length > 0) {
+      const batch = db.batch();
+      unreadDocs.forEach(ref => batch.update(ref, { is_read: true }));
+      await batch.commit();
+    }
+
+    return res.json({ conversation: messages });
+  } catch (error) {
+    console.error('Erro no getConversation:', error);
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 };
 
-// Retorna a caixa de entrada (agrupada).
+// Retorna a caixa de entrada (inbox)
 const getInbox = async (req, res) => {
-    const myId = req.userId;
+  const myId = req.userId;
 
-    try {
-        const { data: messages, error } = await supabase
-          .from('messages')
-          .select('*, sender:users!messages_sender_id_fkey(id, name, username, profile_picture),receiver:users!messages_receiver_id_fkey(id, name, username, profile_picture)')
-          .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
-          .order('created_at', { ascending: false });
+  try {
+    const [sentSnap, receivedSnap] = await Promise.all([
+      db.collection('messages').where('sender_id', '==', myId).get(),
+      db.collection('messages').where('receiver_id', '==', myId).get()
+    ]);
 
-        if (error) {
-            return res.status(500).json({ error: 'Erro ao buscar dados da caixa de entrada.'});
-        }
+    const allMessages = [];
+    sentSnap.forEach(doc => allMessages.push({ id: doc.id, ...doc.data() }));
+    receivedSnap.forEach(doc => allMessages.push({ id: doc.id, ...doc.data() }));
 
-        // Agrupa mensagens pelo contato mais recente.
-        const inboxMap = new Map();
+    // Ordena do mais recente para o mais antigo
+    allMessages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-        messages.forEach(msg => {
-            const contact = msg.sender_id === myId ? msg.receiver : msg.sender;
-            if (!inboxMap.has(contact.id)) {
-            inboxMap.set(contact.id,{
-                contact,
-                lastMessage: msg.content,
-                isRead: msg.is_read,
-                isMine: msg.sender_id === myId,
-                createdAt: msg.created_at,
-            });
-        }
+    // Identifica os contatos únicos
+    const contactIds = new Set();
+    allMessages.forEach(msg => {
+      const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
+      contactIds.add(otherId);
+    });
+
+    // Busca os dados de perfil dos contatos
+    const contactDocs = await Promise.all(
+      Array.from(contactIds).map(id => db.collection('users').doc(id).get())
+    );
+
+    const contactMap = {};
+    contactDocs.forEach(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        contactMap[doc.id] = {
+          id: doc.id,
+          name: data.name,
+          username: data.username,
+          profile_picture: data.profile_picture || ''
+        };
+      }
+    });
+
+    // Monta o resumo da caixa de entrada
+    const inboxMap = new Map();
+
+    allMessages.forEach(msg => {
+      const contactId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
+      const contact = contactMap[contactId];
+
+      if (contact && !inboxMap.has(contactId)) {
+        inboxMap.set(contactId, {
+          contact,
+          lastMessage: msg.content,
+          isRead: msg.is_read,
+          isMine: msg.sender_id === myId,
+          createdAt: msg.created_at,
+        });
+      }
     });
 
     return res.json({ inbox: Array.from(inboxMap.values()) });
   } catch (error) {
     console.error('Erro no getInbox:', error);
-    return res.status(500).json({ error: 'Erro interno no servidor.'});
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
   }
 };
 
-module.exports = { sendMessage, getConversation, getInbox, sendMessageSchema};
+module.exports = {
+  sendMessage,
+  getConversation,
+  getInbox,
+  sendMessageSchema
+};

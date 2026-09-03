@@ -6,6 +6,7 @@ node_modules/
 .env.local
 *.env
 backend/.env
+backend/serviceAccountKey.json
 
 # Logs e arquivos do sistema
 *.log
