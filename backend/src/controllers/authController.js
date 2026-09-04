@@ -77,7 +77,7 @@ const getTransporter = async () => {
 // Controllers de Autenticação
 
 const register = async (req, res) => {
-  const { name, username, email, password, role } = req.body;
+  const { name, username, email, password, role, unit, course, class_period, registration_number, graduated_course, graduation_year, current_company, current_position, linkedin_url, open_for_mentoring, teaching_areas, teacher_code } = req.body;
 
   try {
     // Verifica e-mail ou username duplicados no Firestore

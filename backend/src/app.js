@@ -8,6 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const opportunityRoutes = require('./routes/opportunityRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -38,5 +39,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/opportunities', opportunityRoutes);
+app.use('/api/admin', adminRoutes);
 
 module.exports = app;
