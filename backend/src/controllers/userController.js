@@ -99,28 +99,53 @@ const uploadAvatar = async (req, res) => {
 
 const searchUsers = async (req, res) => {
   const query = (req.query.q || '').trim().toLowerCase();
-
-  if (!query) {
-    return res.json({ users: [] });
-  }
+  const { role, mentoring, unit, course } = req.query;
 
   try {
-    const snapshot = await db.collection('users').limit(50).get();
+    let usersQuery = db.collection('users');
 
-    const users = [];
+    // Se passou filtro de role direto no Firestore
+    if (role) {
+      usersQuery = usersQuery.where('role', '==', role.toLowerCase());
+    }
+
+    const snapshot = await usersQuery.limit(50).get();
+
+    let users = [];
     snapshot.forEach(doc => {
       const data = doc.data();
       const name = (data.name || '').toLowerCase();
       const username = (data.username || '').toLowerCase();
+      const userCourse = (data.course || data.graduated_course || '').toLowerCase();
+      const userUnit = (data.unit || '').toLowerCase();
 
-      if (name.includes(query) || username.includes(query)) {
+      // Filtro de texto se foi enviado 'q'
+      const matchesQuery = !query || name.includes(query) || username.includes(query);
+
+      // Filtro de mentoria 
+      const matchesMentoring = mentoring === undefined || String(data.open_for_mentoring) === mentoring;
+
+      // Filtro de unidade/curso
+      const matchesUnit = !unit || userUnit.includes(unit.toLowerCase());
+      const matchesCourse = !course || userCourse.includes(course.toLowerCase());
+
+      if (matchesQuery && matchesMentoring && matchesUnit && matchesCourse) {
         users.push({
           id: doc.id,
           name: data.name,
           username: data.username,
           role: data.role,
+          unit: data.unit || '',
           bio: data.bio || '',
-          profile_picture: data.profile_picture || ''
+          profile_picture: data.profile_picture || '',
+          
+          // Dados contextuais de acordo com o role
+          course: data.course || null,
+          graduated_course: data.graduated_course || null,
+          current_company: data.current_company || null,
+          current_position: data.current_position || null,
+          open_for_mentoring: data.open_for_mentoring || false,
+          teaching_areas: data.teaching_areas || []
         });
       }
     });

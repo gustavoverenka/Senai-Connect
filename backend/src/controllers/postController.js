@@ -1,9 +1,10 @@
-const { z } = require('zod');
+const { z, boolean } = require('zod');
 const { db, admin } = require('../config/firebase');
 
 // Schemas de validação
 const createPostSchema = z.object({
   content: z.string().min(1, 'O conteudo do post nao pode estar vazio').max(1000, 'Maximo de 1000 caracteres'),
+  is_announcement: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false)
 });
 
 const commentSchema = z.object({
@@ -12,7 +13,7 @@ const commentSchema = z.object({
 
 // Cria uma nova publicação
 const createPost = async (req, res) => {
-  const { content } = req.body;
+  const { content, is_announcement } = req.body;
   let imageUrl = '';
 
   try {
@@ -24,6 +25,10 @@ const createPost = async (req, res) => {
     // Busca os dados do autor
     const userDoc = await db.collection('users').doc(req.userId).get();
     const userData = userDoc.data() || {};
+
+    //Somente professor ou admin podem criar/posts fixados
+    const isAnnouncementAllowed = ['professor', 'admin'].includes(userData.role);
+    const shouldPin = isAnnouncementAllowed && Boolean(is_announcement);
 
     const author = {
       id: req.userId,
@@ -38,6 +43,7 @@ const createPost = async (req, res) => {
       content,
       image: imageUrl,
       author,
+      is_announcement: shouldPin, //flag de aviso/fixado
       likesCount: 0,
       commentsCount: 0,
       created_at: new Date().toISOString()
@@ -99,6 +105,13 @@ const getFeed = async (req, res) => {
       };
     });
 
+    //anuncios primeiro
+    formattedPosts.sort((a, b) => {
+      if (a.is_announcement === b.is_announcement) {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return a.is_announcement ? -1 : 1;
+    });
     return res.json({ feed: formattedPosts });
   } catch (error) {
     console.error('Erro ao buscar feed:', error);

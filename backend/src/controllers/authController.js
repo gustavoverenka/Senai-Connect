@@ -15,7 +15,7 @@ const registerSchema = z.object({
     .toLowerCase(),
   email: z.string().email('Formato de e-mail inválido!').toLowerCase(),
   password: z.string().min(6, 'A senha deve ter no minimo 6 caracteres'),
-  role: z.enum(['Aluno', 'ex-aluno', 'professor', 'admin']).default('Aluno'),
+  role: z.enum(['aluno', 'ex-aluno', 'professor', 'admin']).default('aluno'),
   unit: z.string().optional(),
 
   //Dados de aluno
