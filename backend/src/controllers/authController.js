@@ -14,8 +14,26 @@ const registerSchema = z.object({
     .regex(/^[a-zA-Z0-9_]+$/, 'O username só pode conter letras, números e underline')
     .toLowerCase(),
   email: z.string().email('Formato de e-mail inválido!').toLowerCase(),
-  role: z.enum(['aluno', 'ex-aluno', 'professor', 'admin']).default('aluno'),
-  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
+  password: z.string().min(6, 'A senha deve ter no minimo 6 caracteres'),
+  role: z.enum(['Aluno', 'ex-aluno', 'professor', 'admin']).default('Aluno'),
+  unit: z.string().optional(),
+
+  //Dados de aluno
+  course: z.string().optional(),
+  class_period: z.string().optional(),
+  registration_number: z.string().optional(),
+
+  //Dados ex-alunos
+  graduated_course: z.string().optional(),
+  graduation_year: z.number().int().optional(),
+  current_company: z.string().optional(),
+  current_position: z.string().optional(),
+  linkedin_url: z.string().url('URL invalida').optional().or(z.literal('')),
+  open_for_mentoring: z.boolean().optional().default(false),
+
+  //Dados professor
+  teaching_areas: z.array(z.string()).optional(),
+  teacher_code: z.string().optional() //Codigo institucional para validar o cadastro do professor
 });
 
 const loginSchema = z.object({
@@ -73,6 +91,13 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'Username já em uso.' });
     }
 
+    if (role == 'professor') {
+      const validCode = process.env.TEACHER_SECRET_CODE || 'SENAI2026';
+      if (req.body.teacher_code !== validCode) {
+        return res.status(400).json({ error: 'Codigo institucional de professor invalido.'});
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
@@ -85,11 +110,26 @@ const register = async (req, res) => {
       email,
       password: hashedPassword,
       role: role || 'aluno',
+      unit: unit || '',
       bio: '',
       profile_picture: '',
       is_verified: false,
       verify_token: verifyToken,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+
+      //Campos adicionais/especificos
+      course: course || null,
+      class_period: class_period || null,
+      registration_number: registration_number || null,
+
+      graduated_course: graduated_course || null,
+      graduation_year: graduation_year  || null,
+      current_company: current_company || null,
+      current_position: current_position || null,
+      linkedin_url: linkedin_url || null,
+      open_for_mentoring: open_for_mentoring ?? false,
+
+      teaching_areas: teaching_areas || []
     };
 
     const docRef = await db.collection('users').add(userData);
