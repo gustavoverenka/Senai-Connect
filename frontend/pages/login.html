@@ -3,33 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>SENAI Connect - Mural de Oportunidades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="../css/navbar.css">
+    <style>
+        .opp-container {
+            max-width: 850px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .opp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .filter-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            background: var(--senai-blue);
+            color: #fff;
+            border-color: var(--senai-blue-light);
+        }
+
+        .opp-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .opp-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-light);
+        }
+
+        .opp-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .opp-badge-type {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .type-estagio { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+        .type-emprego { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+        .type-mentoria { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+        .type-projeto { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #a855f7; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-    <div class="auth-wrapper">
-        <div class="auth-card">
-            <h1 class="auth-title">SENAI Connect</h1>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>E-mail Corporativo</label>
-                    <input type="email" id="email" placeholder="seu.nome@senai.br" required>
-                </div>
-                <div class="form-group">
-                    <label>Senha</label>
-                    <input type="password" id="password" placeholder="••••••••" required>
-                </div>
-                <button type="submit" class="btn-primary">Entrar</button>
-            </form>
-            <div class="auth-links">
-                <p>Não possui uma conta? <a href="register.html">Cadastre-se</a></p>
-                <p style="margin-top:0.75rem;"><a href="#">Esqueceu sua senha?</a></p>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="brand">
+                <span class="senai-badge">SENAI</span>
+                <span>Connect</span>
+            </div>
+            <div class="nav-links">
+                <a href="feed.html">📰 Feed</a>
+                <a href="opportunities.html" class="active">💼 Vagas & Mentoria</a>
+                <a href="search.html">🔍 Explorar</a>
+                <a href="inbox.html">💬 Mensagens</a>
+                <a href="profile.html">👤 Meu Perfil</a>
+                <button class="btn-logout" onclick="logout()">Sair</button>
             </div>
         </div>
+    </nav>
+
+    <main class="opp-container">
+        <div class="opp-header">
+            <div>
+                <h2>Mural de Oportunidades</h2>
+                <p style="color:var(--text-light); font-size:0.9rem;">Vagas de estágio, empregos e conexões diretas com ex-alunos e professores</p>
+            </div>
+            <button id="btnPublishOpp" class="btn-primary" style="display:none;" onclick="openModal()">+ Publicar Oportunidade</button>
+        </div>
+
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterType('', this)">Todas</button>
+            <button class="filter-btn" onclick="filterType('estagio', this)">🎓 Estágios</button>
+            <button class="filter-btn" onclick="filterType('emprego', this)">💼 Empregos (Júnior / Pleno)</button>
+            <button class="filter-btn" onclick="filterType('mentoria', this)">🤝 Mentorias</button>
+            <button class="filter-btn" onclick="filterType('projeto', this)">🚀 Projetos & Iniciação</button>
+        </div>
+
+        <div id="oppList">
+            <p style="text-align:center; color:var(--text-light);">Carregando oportunidades...</p>
+        </div>
+    </main>
+
+    <!-- Modal de Publicação -->
+    <div id="oppModal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3>Publicar Nova Oportunidade</h3>
+                <button onclick="closeModal()" style="background:transparent; border:none; color:var(--text-light); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+
+            <form id="oppForm">
+                <div class="form-group">
+                    <label>Título da Oportunidade</label>
+                    <input type="text" id="oppTitle" placeholder="Ex: Estágio em Desenvolvimento Front-end" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="oppType" required>
+                        <option value="estagio">Estágio</option>
+                        <option value="emprego">Emprego</option>
+                        <option value="mentoria">Mentoria</option>
+                        <option value="projeto">Projeto</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Empresa / Instituição (Opcional)</label>
+                    <input type="text" id="oppCompany" placeholder="Ex: Softplan / SENAI Lab">
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>Modalidade</label>
+                        <select id="oppWorkplace">
+                            <option value="presencial">Presencial</option>
+                            <option value="hibrido">Híbrido</option>
+                            <option value="remoto">Remoto</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Localização</label>
+                        <input type="text" id="oppLocation" placeholder="Ex: Londrina - PR">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição da Oportunidade</label>
+                    <textarea id="oppDescription" rows="3" placeholder="Descreva as responsabilidades, atividades e detalhes..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Requisitos (Opcional)</label>
+                    <input type="text" id="oppRequirements" placeholder="Ex: Conhecimento em HTML, CSS, JavaScript básico">
+                </div>
+
+                <div class="form-group">
+                    <label>Como se candidatar (Link, E-mail ou Telefone)</label>
+                    <input type="text" id="oppContact" placeholder="Ex: vagas@empresa.com.br ou link da vaga" required>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1.5rem;">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="margin-top:0; width:auto;">Publicar Oportunidade</button>
+                </div>
+            </form>
+        </div>
     </div>
+
     <script src="../js/api.js"></script>
-    <script src="../js/auth.js"></script>
+    <script src="../js/opportunities.js"></script>
 </body>
 </html>

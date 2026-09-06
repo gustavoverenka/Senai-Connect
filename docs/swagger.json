@@ -1,0 +1,588 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API SENAI Connect",
+    "description": "Documentacao oficial da API do SENAI Connect. Esta API fornece endpoints para autenticacao, gestao de perfis por cargo, mural de publicacoes, mural de oportunidades e vagas, mensagens diretas e painel administrativo.",
+    "version": "1.1.0",
+    "contact": {
+      "name": "Equipe de Desenvolvimento SENAI Connect"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor Local de Desenvolvimento"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Insira o token JWT gerado no endpoint de login com o prefixo Bearer."
+      }
+    }
+  },
+  "tags": [
+    { "name": "Health", "description": "Status de operacao do servidor" },
+    { "name": "Auth", "description": "Autenticacao, cadastro e recuperacao de conta" },
+    { "name": "Users", "description": "Gerenciamento de perfis, conexoes e busca de usuarios" },
+    { "name": "Posts", "description": "Publicacoes, comunicados institucionais, curtidas e comentarios" },
+    { "name": "Opportunities", "description": "Mural de vagas de estagio, empregos, mentorias e projetos" },
+    { "name": "Messages", "description": "Mensagens diretas e historico de conversas" },
+    { "name": "Admin", "description": "Metricas da plataforma, gestao de usuarios e moderacao" }
+  ],
+  "paths": {
+    "/api/status": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Verifica a integridade do servidor",
+        "responses": {
+          "200": { "description": "Servidor online e em operacao normal" }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Registra um novo usuario na plataforma",
+        "description": "Permite o registro de contas com perfis de aluno, ex-aluno, professor ou admin. Campos adicionais sao validados conforme o cargo selecionado.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "username", "email", "password", "role"],
+                "properties": {
+                  "name": { "type": "string", "example": "Carlos Alberto" },
+                  "username": { "type": "string", "example": "carlos_alberto" },
+                  "email": { "type": "string", "example": "carlos@senai.br" },
+                  "password": { "type": "string", "example": "senhaForte123" },
+                  "role": { "type": "string", "enum": ["aluno", "ex-aluno", "professor", "admin"], "example": "aluno" },
+                  "unit": { "type": "string", "example": "SENAI Londrina" },
+                  "course": { "type": "string", "description": "Obrigatorio/Exclusivo para alunos", "example": "Tecnico em Desenvolvimento de Sistemas" },
+                  "class_period": { "type": "string", "description": "Periodo e modulo do aluno", "example": "3 Modulo - Noturno" },
+                  "registration_number": { "type": "string", "description": "Matricula do aluno", "example": "20261004" },
+                  "graduated_course": { "type": "string", "description": "Curso concluido pelo ex-aluno", "example": "Analise e Desenvolvimento de Sistemas" },
+                  "graduation_year": { "type": "integer", "description": "Ano de conclusao do ex-aluno", "example": 2025 },
+                  "current_company": { "type": "string", "description": "Empresa atual do ex-aluno", "example": "Tech Solutions" },
+                  "current_position": { "type": "string", "description": "Cargo atual do ex-aluno", "example": "Desenvolvedor Backend Junior" },
+                  "linkedin_url": { "type": "string", "example": "https://linkedin.com/in/carlosalberto" },
+                  "open_for_mentoring": { "type": "boolean", "description": "Indica disponibilidade para mentoria de alunos", "example": true },
+                  "teaching_areas": { "type": "array", "items": { "type": "string" }, "example": ["Banco de Dados", "Programacao Web"] },
+                  "teacher_code": { "type": "string", "description": "Codigo institucional exigido para cadastro de professores", "example": "SENAI2026" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Usuario cadastrado com sucesso. Codigo de verificacao enviado por e-mail." },
+          "400": { "description": "Dados invalidos, e-mail duplicado ou codigo de professor incorreto." }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Valida o e-mail do usuario mediante codigo de 6 digitos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "code"],
+                "properties": {
+                  "email": { "type": "string", "example": "carlos@senai.br" },
+                  "code": { "type": "string", "example": "123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Conta ativada com sucesso." },
+          "400": { "description": "Codigo incorreto ou e-mail nao encontrado." }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Autentica o usuario e retorna o token de acesso JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "carlos@senai.br" },
+                  "password": { "type": "string", "example": "senhaForte123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login realizado com sucesso." },
+          "400": { "description": "Credenciais invalidas." },
+          "401": { "description": "Conta ainda nao ativada por e-mail." }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Solicita redefinicao de senha por e-mail",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "example": "carlos@senai.br" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Instrucoes de recuperacao enviadas se o e-mail existir." }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Define uma nova senha utilizando token de recuperacao",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "newPassword"],
+                "properties": {
+                  "token": { "type": "string", "example": "tokenHexadecimalGerado" },
+                  "newPassword": { "type": "string", "example": "novaSenha123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Senha redefinida com sucesso." },
+          "400": { "description": "Token invalido ou expirado." }
+        }
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Retorna os dados do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Dados do perfil retornados com sucesso." }
+        }
+      }
+    },
+    "/api/users/search": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Busca usuarios com filtros opcionais por termo, cargo e mentoria",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Termo de busca (nome ou username)" },
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["aluno", "ex-aluno", "professor", "admin"] }, "description": "Filtrar por cargo especifico" },
+          { "name": "mentoring", "in": "query", "schema": { "type": "boolean" }, "description": "Filtrar apenas usuarios disponiveis para mentoria" },
+          { "name": "unit", "in": "query", "schema": { "type": "string" }, "description": "Filtrar por unidade SENAI" },
+          { "name": "course", "in": "query", "schema": { "type": "string" }, "description": "Filtrar por curso" }
+        ],
+        "responses": {
+          "200": { "description": "Lista de usuarios correspondentes retornada com sucesso." }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Retorna o perfil publico de um usuario pelo ID",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Perfil retornado com sucesso." },
+          "404": { "description": "Usuario nao encontrado." }
+        }
+      }
+    },
+    "/api/users/bio": {
+      "put": {
+        "tags": ["Users"],
+        "summary": "Atualiza a biografia do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["bio"],
+                "properties": {
+                  "bio": { "type": "string", "maxLength": 250, "example": "Estudante do curso tecnico focado em integracao de sistemas e APIs." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Biografia atualizada com sucesso." }
+        }
+      }
+    },
+    "/api/users/avatar": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Atualiza a foto de perfil do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Foto de perfil atualizada com sucesso." }
+        }
+      }
+    },
+    "/api/users/{id}/follow": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Alterna entre seguir e deixar de seguir um usuario",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Status de conexao alterado com sucesso." }
+        }
+      }
+    },
+    "/api/users/{id}/followers": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Lista os seguidores de um usuario",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Lista de seguidores retornada com sucesso." }
+        }
+      }
+    },
+    "/api/users/{id}/following": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Lista as conexoes que o usuario esta seguindo",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Lista de seguidos retornada com sucesso." }
+        }
+      }
+    },
+    "/api/posts": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Retorna o feed de publicacoes",
+        "description": "Retorna a lista de posts com contagem de curtidas, comentarios e indicacao se foi curtido pelo usuario logado. Comunicados oficiais fixados sao priorizados no topo.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Feed retornado com sucesso." }
+        }
+      },
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Cria uma nova publicacao no feed",
+        "description": "Usuarios com perfil de professor ou admin podem incluir o parametro 'is_announcement: true' para fixar a postagem como comunicado oficial.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string", "example": "Inscricoes abertas para a maratona de programacao do SENAI." },
+                  "is_announcement": { "type": "boolean", "description": "Exclusivo para professores e administradores", "example": false },
+                  "image": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Publicacao criada com sucesso." }
+        }
+      }
+    },
+    "/api/posts/{id}/like": {
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Alterna curtida em uma publicacao",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Curtida alternada com sucesso." }
+        }
+      }
+    },
+    "/api/posts/{id}/comments": {
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Adiciona um comentario a uma publicacao",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string", "maxLength": 500, "example": "Excelente iniciativa! Participarei com certeza." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Comentario registrado com sucesso." }
+        }
+      }
+    },
+    "/api/posts/{id}": {
+      "delete": {
+        "tags": ["Posts"],
+        "summary": "Exclui uma publicacao",
+        "description": "Apenas o autor da publicacao ou um usuario com perfil de 'admin' tem autorizacao para a exclusao.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Publicacao excluida com sucesso." },
+          "403": { "description": "Acesso negado: permissao insuficiente." }
+        }
+      }
+    },
+    "/api/opportunities": {
+      "get": {
+        "tags": ["Opportunities"],
+        "summary": "Lista as oportunidades publicadas no mural",
+        "description": "Permite a qualquer usuario autenticado consultar oportunidades com filtros opcionais por tipo ou modalidade.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["estagio", "emprego", "mentoria", "projeto"] }, "description": "Filtrar por tipo de oportunidade" },
+          { "name": "workplace_type", "in": "query", "schema": { "type": "string", "enum": ["presencial", "hibrido", "remoto"] }, "description": "Filtrar por modalidade de trabalho" }
+        ],
+        "responses": {
+          "200": { "description": "Lista de oportunidades retornada com sucesso." }
+        }
+      },
+      "post": {
+        "tags": ["Opportunities"],
+        "summary": "Publica uma nova oportunidade ou oferta de mentoria",
+        "description": "Exclusivo para usuarios com papel de 'ex-aluno', 'professor' ou 'admin'.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "type", "description", "link_or_contact"],
+                "properties": {
+                  "title": { "type": "string", "example": "Estagio em Desenvolvimento Fullstack" },
+                  "type": { "type": "string", "enum": ["estagio", "emprego", "mentoria", "projeto"], "example": "estagio" },
+                  "company": { "type": "string", "example": "Empresa Parceira do SENAI" },
+                  "workplace_type": { "type": "string", "enum": ["presencial", "hibrido", "remoto"], "example": "hibrido" },
+                  "location": { "type": "string", "example": "Londrina - PR" },
+                  "description": { "type": "string", "example": "Atuacao no desenvolvimento de interfaces web e integracao com microservicos." },
+                  "requirements": { "type": "string", "example": "Conhecimento basico em JavaScript, Node.js e Git." },
+                  "link_or_contact": { "type": "string", "example": "recrutamento@parceira.com.br" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Oportunidade cadastrada com sucesso." },
+          "403": { "description": "Acesso negado: perfil sem autorizacao para publicar vagas." }
+        }
+      }
+    },
+    "/api/opportunities/{id}": {
+      "delete": {
+        "tags": ["Opportunities"],
+        "summary": "Remove uma oportunidade cadastrada",
+        "description": "Permitido apenas para o autor da publicacao ou administradores.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Oportunidade removida com sucesso." },
+          "403": { "description": "Acesso negado." }
+        }
+      }
+    },
+    "/api/messages/inbox": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Retorna a caixa de entrada com a ultima mensagem de cada contato",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Caixa de entrada retornada com sucesso." }
+        }
+      }
+    },
+    "/api/messages/{id}": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Retorna o historico de conversa com um usuario especifico",
+        "description": "Ao carregar as mensagens, o status de leitura e automaticamente atualizado.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "ID do contato" }
+        ],
+        "responses": {
+          "200": { "description": "Historico retornado com sucesso." }
+        }
+      },
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Envia uma mensagem direta para um usuario",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "ID do destinatario" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string", "example": "Ola, gostaria de tirar uma duvida sobre a oportunidade divulgada." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Mensagem enviada com sucesso." }
+        }
+      }
+    },
+    "/api/admin/stats": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Retorna metricas consolidadas da plataforma",
+        "description": "Exclusivo para administradores. Retorna contagem total de usuarios, publicacoes, oportunidades e distribuicao por cargo.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Estatisticas retornadas com sucesso." },
+          "403": { "description": "Acesso negado: restrito a administradores." }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Lista todos os usuarios cadastrados com filtro opcional por cargo",
+        "description": "Exclusivo para administradores.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["aluno", "ex-aluno", "professor", "admin"] }, "description": "Filtrar por cargo" }
+        ],
+        "responses": {
+          "200": { "description": "Lista de usuarios retornada com sucesso." },
+          "403": { "description": "Acesso negado." }
+        }
+      }
+    },
+    "/api/admin/users/{id}/role": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Altera o cargo/permissao de um usuario",
+        "description": "Exclusivo para administradores. Permite promover ou rebaixar a role de uma conta.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "ID do usuario" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": { "type": "string", "enum": ["aluno", "ex-aluno", "professor", "admin"], "example": "professor" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Cargo atualizado com sucesso." },
+          "400": { "description": "Cargo invalido informado." },
+          "403": { "description": "Acesso negado." }
+        }
+      }
+    },
+    "/api/admin/posts/{id}": {
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Remove qualquer publicacao da plataforma por moderacao administrativa",
+        "description": "Exclusivo para administradores.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "ID da publicacao a ser removida" }
+        ],
+        "responses": {
+          "200": { "description": "Publicacao removida pela moderacao com sucesso." },
+          "403": { "description": "Acesso negado." },
+          "404": { "description": "Publicacao nao encontrada." }
+        }
+      }
+    }
+  }
+}

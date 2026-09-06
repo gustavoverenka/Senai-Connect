@@ -1,64 +1,100 @@
-// Redireciona usuários não autenticados.
 if (!getToken()) logout();
 
 function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function getRoleBadge(role) {
+    const r = (role || 'aluno').toLowerCase();
+    const map = {
+        'aluno': { label: '🎓 Aluno', class: 'aluno' },
+        'ex-aluno': { label: '💼 Ex-Aluno', class: 'ex-aluno' },
+        'professor': { label: '👨‍🏫 Professor', class: 'professor' },
+        'admin': { label: '🛡️ Coordenação', class: 'admin' }
+    };
+    const info = map[r] || map['aluno'];
+    return `<span class="badge-role ${info.class}">${info.label}</span>`;
+}
+
+let currentRoleFilter = '';
+let isMentoringOnly = false;
+
+function applyRoleFilter(role, btn) {
+    currentRoleFilter = role;
+    isMentoringOnly = false;
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    searchUsers();
+}
+
+function applyMentoringFilter(btn) {
+    isMentoringOnly = !isMentoringOnly;
+    currentRoleFilter = isMentoringOnly ? 'ex-aluno' : '';
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    if (isMentoringOnly && btn) btn.classList.add('active');
+    searchUsers();
+}
+
 async function searchUsers() {
     const query = document.getElementById('searchInput').value.trim();
     const listEl = document.getElementById('userResults');
 
-    if (!query) {
-        listEl.innerHTML = '<p style="color:var(--text-light);">Digite um termo para buscar.</p>';
-        return;
-    }
+    let endpoint = `/users/search?q=${encodeURIComponent(query)}`;
+    if (currentRoleFilter) endpoint += `&role=${encodeURIComponent(currentRoleFilter)}`;
+    if (isMentoringOnly) endpoint += `&mentoring=true`;
 
     try {
-        const data = await apiFetch(`/users/search?q=${encodeURIComponent(query)}`);
+        const data = await apiFetch(endpoint);
         const users = data.users || [];
-        listEl.innerHTML = users.map(u => `
-            <div class="user-result" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #ccc;">
-                <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="window.location.href='user.html?id=${u.id}'">
-                    <img src="${u.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=0f172a&color=fff`}" class="avatar" alt="${escapeHtml(u.name)}" style="width:40px;height:40px;border-radius:50%;">
-                    <div>
-                        <strong>${escapeHtml(u.name)}</strong><br>
-                        <span style="color:var(--text-light);">@${escapeHtml(u.username)}</span>
+
+        if (users.length === 0) {
+            listEl.innerHTML = '<p style="color:var(--text-light); text-align:center; margin-top:2rem;">Nenhum usuário encontrado com esses critérios.</p>';
+            return;
+        }
+
+        listEl.innerHTML = users.map(u => {
+            const avatarUrl = u.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=005aa9&color=fff`;
+            const badge = getRoleBadge(u.role);
+
+            // Informações contextuais de acordo com o cargo
+            let extraInfo = '';
+            if (u.role === 'aluno' && u.course) {
+                extraInfo = `<div style="font-size:0.8rem; color:var(--text-light); margin-top:2px;">📚 ${escapeHtml(u.course)}</div>`;
+            } else if (u.role === 'ex-aluno') {
+                if (u.current_company) {
+                    extraInfo = `<div style="font-size:0.8rem; color:#34d399; margin-top:2px;">💼 ${escapeHtml(u.current_company)}</div>`;
+                }
+                if (u.open_for_mentoring) {
+                    extraInfo += `<div style="font-size:0.75rem; color:#fbbf24; margin-top:2px;">🤝 Disponível para mentoria</div>`;
+                }
+            } else if (u.role === 'professor' && u.teaching_areas && u.teaching_areas.length > 0) {
+                extraInfo = `<div style="font-size:0.8rem; color:#fbbf24; margin-top:2px;">📖 ${escapeHtml(u.teaching_areas.join(', '))}</div>`;
+            }
+
+            return `
+                <div class="user-result">
+                    <div style="display:flex; align-items:center; gap:12px; cursor:pointer;" onclick="window.location.href='user.html?id=${u.id}'">
+                        <img src="${avatarUrl}" class="avatar" alt="Avatar">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <strong style="font-size:0.95rem;">${escapeHtml(u.name)}</strong>
+                                ${badge}
+                            </div>
+                            <span style="color:var(--text-muted); font-size:0.85rem;">@${escapeHtml(u.username)}</span>
+                            ${extraInfo}
+                        </div>
                     </div>
+                    <button class="btn-primary" style="padding:6px 14px; font-size:0.85rem; width:auto;" onclick="event.stopPropagation(); window.location.href='user.html?id=${u.id}'">Ver Perfil</button>
                 </div>
-                <button class="btn-primary" style="padding:5px 10px; font-size:0.9rem; width:auto;" onclick="event.stopPropagation(); toggleFollow(${u.id}, this)">Seguir</button>
-            </div>`).join('') || '<p style="color:var(--text-light);">Nenhum usuário encontrado.</p>';
+            `;
+        }).join('');
     } catch (error) {
         console.error("Erro na busca:", error);
     }
 }
 
-async function toggleFollow(userId, btn) {
-    const isCurrentlyFollowing = btn.textContent === 'Deixar de Seguir';
-    
-    // Atualização otimista na interface.
-    if (isCurrentlyFollowing) {
-        btn.textContent = 'Seguir';
-        btn.classList.replace('btn-secondary', 'btn-primary');
-    } else {
-        btn.textContent = 'Deixar de Seguir';
-        btn.classList.replace('btn-primary', 'btn-secondary');
-    }
-
-    try {
-        await apiFetch(`/users/${userId}/follow`, { method: 'POST' });
-    } catch (error) {
-        console.error("Erro ao seguir:", error);
-        // Reverte a interface em caso de falha.
-        if (isCurrentlyFollowing) {
-            btn.textContent = 'Deixar de Seguir';
-            btn.classList.replace('btn-primary', 'btn-secondary');
-        } else {
-            btn.textContent = 'Seguir';
-            btn.classList.replace('btn-secondary', 'btn-primary');
-        }
-    }
-}
-
 document.getElementById('searchBtn').addEventListener('click', searchUsers);
 document.getElementById('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchUsers(); });
+
+window.addEventListener('DOMContentLoaded', searchUsers);
+

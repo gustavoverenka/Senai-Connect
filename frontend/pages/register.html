@@ -4,37 +4,105 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SENAI Connect - Cadastro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/auth.css">
 </head>
 <body>
     <div class="auth-wrapper">
         <div class="auth-card">
-            <h1 class="auth-title">Criar Conta</h1>
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <span class="senai-badge">SENAI</span>
+                    <span>Connect</span>
+                </div>
+                <h1 class="auth-title">Crie sua Conta</h1>
+                <p class="auth-subtitle">A rede profissional e acadêmica do ecossistema SENAI</p>
+            </div>
+
             <form id="registerForm">
+                <!-- Seletor de Role -->
+                <label style="font-size:0.85rem; font-weight:600; color:var(--text-light); margin-bottom:0.4rem; display:block;">Eu sou:</label>
+                <div class="role-selector">
+                    <div class="role-option active" data-role="aluno">🎓 Aluno</div>
+                    <div class="role-option" data-role="ex-aluno">💼 Ex-Aluno</div>
+                    <div class="role-option" data-role="professor">👨‍🏫 Professor</div>
+                </div>
+                <input type="hidden" id="role" value="aluno">
+
+                <!-- Campos Gerais -->
                 <div class="form-group">
                     <label>Nome Completo</label>
-                    <input type="text" id="name" placeholder="Ex: João da Silva" required>
+                    <input type="text" id="name" placeholder="Ex: Lucas Ferreira" required>
                 </div>
                 <div class="form-group">
-                    <label>Nome de Usuário</label>
-                    <input type="text" id="username" placeholder="joaosilva" required>
+                    <label>Nome de Usuário (@)</label>
+                    <input type="text" id="username" placeholder="lucasferreira" required>
                 </div>
                 <div class="form-group">
-                    <label>E-mail Corporativo</label>
-                    <input type="email" id="email" placeholder="joao@senai.br" required>
+                    <label>E-mail</label>
+                    <input type="email" id="email" placeholder="seu.email@senai.br" required>
                 </div>
+                <div class="form-group">
+                    <label>Unidade SENAI</label>
+                    <input type="text" id="unit" placeholder="Ex: SENAI Londrina">
+                </div>
+
+                <!-- Campos Condicionais: ALUNO -->
+                <div id="fields-aluno" class="dynamic-fields">
+                    <div class="form-group">
+                        <label>Curso Atual</label>
+                        <input type="text" id="course" placeholder="Ex: Técnico em Desenvolvimento de Sistemas">
+                    </div>
+                    <div class="form-group">
+                        <label>Período / Módulo</label>
+                        <input type="text" id="class_period" placeholder="Ex: 3º Módulo - Noturno">
+                    </div>
+                </div>
+
+                <!-- Campos Condicionais: EX-ALUNO -->
+                <div id="fields-ex-aluno" class="dynamic-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Curso Concluído</label>
+                        <input type="text" id="graduated_course" placeholder="Ex: Análise de Sistemas">
+                    </div>
+                    <div class="form-group">
+                        <label>Empresa e Cargo Atual</label>
+                        <input type="text" id="current_company" placeholder="Ex: Desenvolvedor na Tech Corp">
+                    </div>
+                    <div class="form-group">
+                        <label>LinkedIn / Portfólio (URL)</label>
+                        <input type="url" id="linkedin_url" placeholder="https://linkedin.com/in/seuperfil">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
+                        <input type="checkbox" id="open_for_mentoring" style="width:auto;">
+                        <label for="open_for_mentoring" style="margin-bottom:0; cursor:pointer; font-size:0.85rem; color:var(--text);">Disponível para dar mentoria e tirar dúvidas de alunos</label>
+                    </div>
+                </div>
+
+                <!-- Campos Condicionais: PROFESSOR -->
+                <div id="fields-professor" class="dynamic-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Áreas de Ensino (separadas por vírgula)</label>
+                        <input type="text" id="teaching_areas" placeholder="Ex: Banco de Dados, Backend, Robótica">
+                    </div>
+                    <div class="form-group">
+                        <label>Código Institucional de Professor</label>
+                        <input type="password" id="teacher_code" placeholder="Código fornecido pela coordenação">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Senha</label>
                     <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
                 </div>
+                
                 <button type="submit" class="btn-primary">Finalizar Cadastro</button>
             </form>
 
             <form id="verifyForm" style="display: none;">
                 <p style="text-align:center; margin-bottom: 1.5rem; color: var(--text-light); font-size: 0.95rem;">
-                   Enviamos um código de 6 dígitos para o seu e-mail corporativo.
+                   Enviamos um código de 6 dígitos para o seu e-mail institucional.
                 </p>
                 <div class="form-group">
                     <label>Código de Verificação</label>

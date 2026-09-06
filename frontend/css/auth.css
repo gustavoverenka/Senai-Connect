@@ -3,23 +3,96 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 1rem;
+    padding: 2rem 1rem;
+    background: radial-gradient(circle at top right, rgba(0, 90, 169, 0.2), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(227, 6, 19, 0.1), transparent 30%),
+                var(--bg);
 }
 
 .auth-card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 2rem;
+    padding: 2.25rem;
     width: 100%;
-    max-width: 400px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    max-width: 480px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.auth-logo .senai-badge {
+    background: var(--senai-red);
+    color: #fff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 900;
 }
 
 .auth-title {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.auth-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
+}
+
+.role-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.role-option {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.3rem;
     text-align: center;
-    margin-bottom: 1.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--surface);
+    color: var(--text-light);
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.role-option:hover {
+    border-color: var(--border-light);
+    color: var(--text);
+}
+
+.role-option.active {
+    background: rgba(0, 90, 169, 0.2);
+    border-color: var(--senai-blue-light);
+    color: #fff;
+    box-shadow: 0 0 0 2px rgba(2, 117, 216, 0.3);
+}
+
+.dynamic-fields {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.2rem;
 }
 
 .auth-links {

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Perfil</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>SENAI Connect - Meu Perfil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/navbar.css">
     <link rel="stylesheet" href="../css/profile.css">
@@ -12,13 +12,17 @@
 <body>
     <nav class="navbar">
         <div class="nav-content">
-            <div class="brand">SENAI Connect</div>
+            <div class="brand">
+                <span class="senai-badge">SENAI</span>
+                <span>Connect</span>
+            </div>
             <div class="nav-links">
-                <a href="feed.html">Feed</a>
-                <a href="profile.html">Perfil</a>
-                <a href="search.html">Buscar</a>
-                <a href="inbox.html">Mensagens</a>
-                <button onclick="logout()">Sair da Conta</button>
+                <a href="feed.html">📰 Feed</a>
+                <a href="opportunities.html">💼 Vagas & Mentoria</a>
+                <a href="search.html">🔍 Explorar</a>
+                <a href="inbox.html">💬 Mensagens</a>
+                <a href="profile.html" class="active">👤 Meu Perfil</a>
+                <button class="btn-logout" onclick="logout()">Sair</button>
             </div>
         </div>
     </nav>
@@ -27,15 +31,19 @@
         <div class="profile-card">
             <img id="profileAvatar" class="profile-avatar" alt="Foto de perfil">
             <h2 id="profileName">Carregando...</h2>
-            <p id="profileUsername" style="color:var(--text-light);">@...</p>
-            <p id="profileBio">Sem bio por enquanto.</p>
+            <div id="profileBadge" style="margin: 6px 0 10px 0;"></div>
+            <p id="profileUsername" style="color:var(--text-light); font-size:0.9rem;">@...</p>
+            
+            <div id="profileExtraInfo" style="margin: 12px 0; font-size:0.9rem; color:var(--text-light);"></div>
+            
+            <p id="profileBio" style="margin-top:10px; font-style:italic;">Sem bio por enquanto.</p>
         </div>
 
         <div class="profile-edit">
             <h3>Editar Perfil</h3>
             <div class="form-group">
                 <label>Bio (máx. 250 caracteres)</label>
-                <textarea id="bioInput" rows="2" maxlength="250" placeholder="Conte algo sobre você..."></textarea>
+                <textarea id="bioInput" rows="2" maxlength="250" placeholder="Conte algo sobre sua experiência no SENAI ou área de interesse..."></textarea>
             </div>
             <div class="form-group">
                 <label>Foto de Perfil</label>
@@ -48,9 +56,9 @@
         </div>
 
         <div class="connections">
-            <button class="btn-secondary" onclick="loadConnections('followers')">Ver Seguidores</button>
-            <button class="btn-secondary" onclick="loadConnections('following')">Ver Seguindo</button>
-            <div id="connectionList"><p style="color:var(--text-light);">Clique em um botão para ver suas conexões.</p></div>
+            <button class="btn-secondary" onclick="loadConnections('followers')">Ver Conexões / Seguidores</button>
+            <button class="btn-secondary" onclick="loadConnections('following')">Ver Quem Estou Seguindo</button>
+            <div id="connectionList" style="margin-top:1rem;"><p style="color:var(--text-light);">Clique em um botão para ver suas conexões.</p></div>
         </div>
     </main>
 

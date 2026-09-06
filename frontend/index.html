@@ -4,28 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SENAI Connect - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
     <div class="auth-wrapper">
         <div class="auth-card">
-            <h1 class="auth-title">SENAI Connect</h1>
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <span class="senai-badge">SENAI</span>
+                    <span>Connect</span>
+                </div>
+                <h1 class="auth-title">Acesse a sua Conta</h1>
+                <p class="auth-subtitle">Conecte-se com alunos, professores e ex-alunos</p>
+            </div>
+
             <form id="loginForm">
                 <div class="form-group">
-                    <label>E-mail Corporativo</label>
-                    <input type="email" id="email" placeholder="seu.nome@senai.br" required>
+                    <label>E-mail</label>
+                    <input type="email" id="email" placeholder="seu.email@senai.br" required>
                 </div>
                 <div class="form-group">
                     <label>Senha</label>
                     <input type="password" id="password" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="btn-primary">Entrar</button>
+                <button type="submit" class="btn-primary">Entrar no SENAI Connect</button>
             </form>
             <div class="auth-links">
-                <p>Não possui uma conta? <a href="pages/register.html">Cadastre-se</a></p>
-                <p style="margin-top:0.75rem;"><a href="#">Esqueceu sua senha?</a></p>
+                <p>Ainda não possui conta? <a href="pages/register.html">Cadastre-se agora</a></p>
             </div>
         </div>
     </div>

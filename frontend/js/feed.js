@@ -1,8 +1,53 @@
-// Redireciona usuários não autenticados.
 if (!getToken()) logout();
 
 function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function getRoleBadge(role) {
+    const r = (role || 'aluno').toLowerCase();
+    const map = {
+        'aluno': { label: '🎓 Aluno', class: 'aluno' },
+        'ex-aluno': { label: '💼 Ex-Aluno', class: 'ex-aluno' },
+        'professor': { label: '👨‍🏫 Professor', class: 'professor' },
+        'admin': { label: '🛡️ Coordenação', class: 'admin' }
+    };
+    const info = map[r] || map['aluno'];
+    return `<span class="badge-role ${info.class}">${info.label}</span>`;
+}
+
+let currentUser = null;
+
+async function initCurrentUser() {
+    try {
+        const data = await apiFetch('/users/me');
+        currentUser = data.user;
+        
+        const avatarEl = document.getElementById('myAvatar');
+        const nameEl = document.getElementById('myName');
+        const badgeEl = document.getElementById('myBadge');
+        const announcementOption = document.getElementById('announcementOption');
+
+        if (avatarEl) avatarEl.src = currentUser.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=005aa9&color=fff`;
+        if (nameEl) nameEl.textContent = currentUser.name;
+        if (badgeEl) badgeEl.innerHTML = getRoleBadge(currentUser.role);
+
+        // Se for professor ou admin, libera a opção de fixar anúncio
+        if (['professor', 'admin'].includes(currentUser.role) && announcementOption) {
+            announcementOption.style.display = 'flex';
+        }
+    } catch (e) {
+        console.error("Erro ao carregar usuário:", e);
+    }
+}
+
+function updateImageLabel(input) {
+    const nameSpan = document.getElementById('imageFileName');
+    if (input.files && input.files[0]) {
+        nameSpan.textContent = `(${input.files[0].name})`;
+    } else {
+        nameSpan.textContent = '';
+    }
 }
 
 async function loadFeed() {
@@ -12,47 +57,65 @@ async function loadFeed() {
         feedList.innerHTML = '';
 
         if (!data.feed || data.feed.length === 0) {
-            feedList.innerHTML = '<p style="text-align:center; color: var(--text-light); margin-top: 2rem;">Nenhuma publicação encontrada. Seja o primeiro a postar!</p>';
+            feedList.innerHTML = '<p style="text-align:center; color: var(--text-light); margin-top: 2rem;">Nenhuma publicação encontrada. Seja o primeiro a compartilhar!</p>';
             return;
         }
 
         data.feed.forEach(post => {
             const date = new Date(post.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-            // Define avatar de fallback caso inexistente.
-            const avatarUrl = post.author.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author.name)}&background=0f172a&color=fff`;
+            const author = post.author || {};
+            const avatarUrl = author.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name || 'User')}&background=1c2541&color=fff`;
+            const roleBadge = getRoleBadge(author.role);
+
+            const isPinned = Boolean(post.is_announcement);
 
             const commentsHtml = (post.comments || []).map(c => `
-                <div class="comment-item">
-                    <strong>@${escapeHtml(c.user.username)}</strong> <span>${escapeHtml(c.content)}</span>
+                <div class="comment-item" style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                    <strong style="color:var(--text); cursor:pointer;" onclick="window.location.href='user.html?id=${c.user.id}'">@${escapeHtml(c.user.username)}</strong>
+                    <span style="color:var(--text-light); margin-left: 6px;">${escapeHtml(c.content)}</span>
                 </div>`).join('');
 
             feedList.innerHTML += `
-                <div class="post-card" id="post-${post.id}">
+                <div class="post-card ${isPinned ? 'pinned-post' : ''}" id="post-${post.id}" style="${isPinned ? 'border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.03);' : ''}">
+                    ${isPinned ? `
+                        <div style="margin-bottom:0.75rem;">
+                            <span class="badge-announcement">📌 COMUNICADO OFICIAL DO SENAI</span>
+                        </div>
+                    ` : ''}
+
                     <div class="post-header">
-                        <img src="${avatarUrl}" class="avatar" alt="Avatar de ${escapeHtml(post.author.name)}">
-                        <div class="post-meta">
-                            <h4>${escapeHtml(post.author.name)} <span style="font-weight:normal; color:var(--text-light);">@${escapeHtml(post.author.username)}</span></h4>
-                            <span>${date}</span>
+                        <img src="${avatarUrl}" class="avatar" style="cursor:pointer;" onclick="window.location.href='user.html?id=${author.id}'" alt="Avatar">
+                        <div class="post-meta" style="flex:1;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <h4 style="cursor:pointer; margin:0;" onclick="window.location.href='user.html?id=${author.id}'">${escapeHtml(author.name)}</h4>
+                                ${roleBadge}
+                            </div>
+                            <span style="font-size:0.8rem; color:var(--text-muted);">@${escapeHtml(author.username)} • ${date}</span>
                         </div>
                     </div>
-                    <div class="post-content">
+
+                    <div class="post-content" style="font-size: 0.95rem; margin: 0.8rem 0; white-space: pre-wrap;">
                         ${escapeHtml(post.content)}
-                        ${post.image ? `<img src="${post.image}" alt="Post image" style="max-width:100%; border-radius:8px; margin-top:10px;">` : ''}
+                        ${post.image ? `<img src="${post.image}" alt="Imagem do post" style="max-width:100%; border-radius:8px; margin-top:10px; display:block; border: 1px solid var(--border);">` : ''}
                     </div>
+
                     <div class="post-actions">
-                        <button class="action-btn" onclick="toggleLike(${post.id}, this)">
+                        <button class="action-btn" onclick="toggleLike('${post.id}', this)">
                             <span class="like-icon">${post.isLikeByMe ? '❤️' : '🤍'}</span> 
                             <span class="like-count">${post.likesCount || 0}</span>
                         </button>
-                        <button class="action-btn" onclick="toggleComments(${post.id})">
-                            💬 ${post.commentsCount || 0}
+                        <button class="action-btn" onclick="toggleComments('${post.id}')">
+                            💬 Comentários (${post.commentsCount || 0})
                         </button>
                     </div>
-                    <div class="comments-box" id="comments-${post.id}" style="display:none;">
-                        ${commentsHtml || '<p style="color:var(--text-light);font-size:0.9rem;">Sem comentários ainda.</p>'}
+
+                    <div class="comments-box" id="comments-${post.id}" style="display:none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+                        <div style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
+                            ${commentsHtml || '<p style="color:var(--text-muted); font-size:0.85rem;">Nenhum comentário ainda. Seja o primeiro a comentar!</p>'}
+                        </div>
                         <div class="comment-form">
-                            <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário...">
-                            <button class="btn-primary" style="width:auto; padding:0.4rem 1rem;" onclick="addComment(${post.id})">Comentar</button>
+                            <input type="text" id="commentInput-${post.id}" placeholder="Escreva uma resposta...">
+                            <button class="btn-primary" style="width:auto; padding:0.4rem 1rem;" onclick="addComment('${post.id}')">Enviar</button>
                         </div>
                     </div>
                 </div>
@@ -90,10 +153,15 @@ async function createPost() {
     const content = contentInput.value.trim();
     if (!content) return;
 
+    const isAnnouncementEl = document.getElementById('isAnnouncement');
+    const isAnnouncement = isAnnouncementEl && isAnnouncementEl.checked;
+
     try {
-        // Utiliza FormData para suportar upload de arquivos.
         const formData = new FormData();
         formData.append('content', content);
+        if (isAnnouncement) {
+            formData.append('is_announcement', 'true');
+        }
         
         const imageInput = document.getElementById('postImage');
         if (imageInput && imageInput.files[0]) {
@@ -112,6 +180,11 @@ async function createPost() {
 
         contentInput.value = '';
         if (imageInput) imageInput.value = '';
+        const nameSpan = document.getElementById('imageFileName');
+        if (nameSpan) nameSpan.textContent = '';
+        if (isAnnouncementEl) isAnnouncementEl.checked = false;
+
+        showToast(data.message || 'Publicado!', 'success');
         loadFeed();
     } catch (error) {
         showToast(error.message);
@@ -129,7 +202,6 @@ async function toggleLike(postId, btn) {
     const isCurrentlyLiked = iconSpan.textContent.includes('❤️');
     let currentCount = parseInt(countSpan.textContent) || 0;
     
-    // Aplica atualização otimista na interface.
     if (isCurrentlyLiked) {
         iconSpan.textContent = '🤍';
         countSpan.textContent = Math.max(0, currentCount - 1);
@@ -140,10 +212,8 @@ async function toggleLike(postId, btn) {
 
     try {
         await apiFetch(`/posts/${postId}/like`, { method: 'POST' });
-        // Ignora recarregamento para manter a resposta instantânea.
     } catch (error) {
         console.error("Erro ao curtir:", error);
-        // Reverte a interface em caso de falha.e a interface em caso de falha.
         if (isCurrentlyLiked) {
             iconSpan.textContent = '❤️';
             countSpan.textContent = currentCount;
@@ -154,5 +224,7 @@ async function toggleLike(postId, btn) {
     }
 }
 
-// Inicialização
-window.addEventListener('DOMContentLoaded', loadFeed);
+window.addEventListener('DOMContentLoaded', () => {
+    initCurrentUser();
+    loadFeed();
+});
