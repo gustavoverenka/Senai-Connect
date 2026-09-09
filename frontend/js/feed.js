@@ -36,6 +36,12 @@ async function initCurrentUser() {
         if (['professor', 'admin'].includes(currentUser.role) && announcementOption) {
             announcementOption.style.display = 'flex';
         }
+
+        // Se for admin, exibe a aba de moderação na navbar
+        if (currentUser.role === 'admin') {
+            const adminNav = document.getElementById('adminNav');
+            if (adminNav) adminNav.style.display = 'flex';
+        }
     } catch (e) {
         console.error("Erro ao carregar usuário:", e);
     }
@@ -75,6 +81,9 @@ async function loadFeed() {
                     <span style="color:var(--text-light); margin-left: 6px;">${escapeHtml(c.content)}</span>
                 </div>`).join('');
 
+            const isMyPost = currentUser && author.id === currentUser.id;
+            const canReport = !isMyPost;
+
             feedList.innerHTML += `
                 <div class="post-card ${isPinned ? 'pinned-post' : ''}" id="post-${post.id}" style="${isPinned ? 'border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.03);' : ''}">
                     ${isPinned ? `
@@ -99,14 +108,21 @@ async function loadFeed() {
                         ${post.image ? `<img src="${post.image}" alt="Imagem do post" style="max-width:100%; border-radius:8px; margin-top:10px; display:block; border: 1px solid var(--border);">` : ''}
                     </div>
 
-                    <div class="post-actions">
-                        <button class="action-btn" onclick="toggleLike('${post.id}', this)">
-                            <span class="like-icon">${post.isLikeByMe ? '❤️' : '🤍'}</span> 
-                            <span class="like-count">${post.likesCount || 0}</span>
-                        </button>
-                        <button class="action-btn" onclick="toggleComments('${post.id}')">
-                            💬 Comentários (${post.commentsCount || 0})
-                        </button>
+                    <div class="post-actions" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; gap:10px;">
+                            <button class="action-btn" onclick="toggleLike('${post.id}', this)">
+                                <span class="like-icon">${post.isLikeByMe ? '❤️' : '🤍'}</span> 
+                                <span class="like-count">${post.likesCount || 0}</span>
+                            </button>
+                            <button class="action-btn" onclick="toggleComments('${post.id}')">
+                                💬 Comentários (${post.commentsCount || 0})
+                            </button>
+                        </div>
+                        ${canReport ? `
+                            <button class="action-btn" style="color:var(--text-muted); font-size:0.8rem;" onclick="openReportModal('${post.id}')" title="Denunciar publicação à coordenação">
+                                🚩 Denunciar
+                            </button>
+                        ` : ''}
                     </div>
 
                     <div class="comments-box" id="comments-${post.id}" style="display:none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
@@ -123,6 +139,37 @@ async function loadFeed() {
         });
     } catch (error) {
         console.error("Erro ao carregar feed:", error);
+    }
+}
+
+function openReportModal(postId) {
+    document.getElementById('reportPostId').value = postId;
+    document.getElementById('reportReason').value = 'spam';
+    document.getElementById('reportDetails').value = '';
+    const modal = document.getElementById('reportModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeReportModal() {
+    const modal = document.getElementById('reportModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitReport(event) {
+    if (event) event.preventDefault();
+    const postId = document.getElementById('reportPostId').value;
+    const reason = document.getElementById('reportReason').value;
+    const details = document.getElementById('reportDetails').value.trim();
+
+    try {
+        const data = await apiFetch(`/posts/${postId}/report`, {
+            method: 'POST',
+            body: JSON.stringify({ reason, details })
+        });
+        showToast(data.message || 'Denúncia enviada!', 'success');
+        closeReportModal();
+    } catch (e) {
+        // toast already handled in apiFetch
     }
 }
 

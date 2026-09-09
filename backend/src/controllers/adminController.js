@@ -31,7 +31,7 @@ const getDashboardStats = async (req, res) => {
         return res.json({ stats });
     } catch(error) {
         console.error('Erro ao buscar estatisticas:', error);
-        return res.status(500).json({ error: 'Erro interno ao buscar esatisticas.'});
+        return res.status(500).json({ error: 'Erro interno ao buscar estatisticas.' });
     }
 };
 
@@ -51,7 +51,7 @@ const listUsers = async (req, res) => {
 
         snapshot.forEach(doc => {
             const { password, verify_token, reset_token, reset_token_expires, ...user } = doc.data();
-                user.push({ id: doc.id, ...user });
+            users.push({ id: doc.id, ...user });
         });
 
         return res.json({ users });
@@ -61,15 +61,15 @@ const listUsers = async (req, res) => {
     }
 };
 
-//alterar role de um usuario
-
+// Alterar role de um usuario
 const updateUserRole = async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    const validRoles = ['Aluno', 'ex-aluno', 'professor', 'admin'];
-    if (!validRoles.includes(role)) {
-        return res.status(400).json({ error: 'Role invalida.'});
+    const validRoles = ['aluno', 'ex-aluno', 'professor', 'admin'];
+    const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
+    if (!validRoles.includes(normalizedRole)) {
+        return res.status(400).json({ error: 'Role invalida. Escolha: aluno, ex-aluno, professor ou admin.' });
     }
 
     try {
@@ -77,15 +77,15 @@ const updateUserRole = async (req, res) => {
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
-            return res.status(400).json({ error: 'Usuario não encontrado.'});
+            return res.status(404).json({ error: 'Usuario não encontrado.' });
         }
 
-        await userRef.update({ role })
+        await userRef.update({ role: normalizedRole });
 
-        return res.json({ message: `Role atualizada para ${role} com sucesso!`});
+        return res.json({ message: `Role atualizada para ${normalizedRole} com sucesso!` });
     } catch (error) {
         console.error('Erro ao atualizar role:', error);
-        return res.status(500).json({ error: 'Erro interno ao atualizar role.'});
+        return res.status(500).json({ error: 'Erro interno ao atualizar role.' });
     }
 };
 

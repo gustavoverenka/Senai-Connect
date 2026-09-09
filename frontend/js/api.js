@@ -73,3 +73,18 @@ async function apiFetch(endpoint, options = {}) {
         throw error;
     }
 }
+
+// Verifica automaticamente permissão de admin para exibir o link de moderação na barra de navegação
+window.addEventListener('DOMContentLoaded', async () => {
+    const adminNav = document.getElementById('adminNav');
+    if (adminNav && getToken()) {
+        try {
+            const data = await apiFetch('/users/me');
+            if (data && data.user && data.user.role === 'admin') {
+                adminNav.style.display = 'flex';
+            }
+        } catch (e) {
+            // Ignora silenciosamente se o endpoint falhar na navbar
+        }
+    }
+});

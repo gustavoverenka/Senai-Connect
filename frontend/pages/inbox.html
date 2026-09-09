@@ -75,13 +75,18 @@
 <body>
     <nav class="navbar">
         <div class="nav-content">
-            <div class="brand">SENAI Connect</div>
+            <div class="brand">
+                <span class="senai-badge">SENAI</span>
+                <span>Connect</span>
+            </div>
             <div class="nav-links">
-                <a href="feed.html">Feed</a>
-                <a href="profile.html">Perfil</a>
-                <a href="search.html">Buscar</a>
-                <a href="inbox.html" style="font-weight:600; color:var(--primary);">Mensagens</a>
-                <button onclick="logout()">Sair</button>
+                <a href="feed.html"> Feed</a>
+                <a href="opportunities.html"> Vagas & Mentoria</a>
+                <a href="search.html"> Explorar</a>
+                <a href="inbox.html" class="active"> Mensagens</a>
+                <a href="profile.html"> Meu Perfil</a>
+                <a href="admin.html" id="adminNav" style="display:none;">🛡️ Moderação</a>
+                <button class="btn-logout" onclick="logout()">Sair</button>
             </div>
         </div>
     </nav>

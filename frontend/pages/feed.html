@@ -22,6 +22,7 @@
                 <a href="search.html"> Explorar</a>
                 <a href="inbox.html"> Mensagens</a>
                 <a href="profile.html"> Meu Perfil</a>
+                <a href="admin.html" id="adminNav" style="display:none;">🛡️ Moderação</a>
                 <button class="btn-logout" onclick="logout()">Sair</button>
             </div>
         </div>
@@ -63,6 +64,37 @@
             <p style="text-align:center; color: var(--text-light); margin-top: 2rem;">Carregando publicações...</p>
         </div>
     </main>
+
+    <!-- Modal de Denúncia -->
+    <div id="reportModal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:999; padding:1rem;">
+        <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:1.75rem; width:100%; max-width:480px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                <h3 style="margin:0; font-size:1.2rem; color:var(--text);">🚩 Denunciar Publicação</h3>
+                <button onclick="closeReportModal()" style="background:transparent; border:none; color:var(--text-light); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="reportForm" onsubmit="submitReport(event)">
+                <input type="hidden" id="reportPostId">
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.4rem; color:var(--text-light);">Motivo da Denúncia</label>
+                    <select id="reportReason" required style="width:100%; background:var(--background); border:1px solid var(--border); color:var(--text); padding:0.6rem; border-radius:8px;">
+                        <option value="spam">📢 Spam ou propaganda não autorizada</option>
+                        <option value="ofensivo">🤬 Linguagem ofensiva ou desrespeito</option>
+                        <option value="conteudo_improprio">⚠️ Conteúdo impróprio / violação de diretrizes</option>
+                        <option value="desinformacao">❌ Desinformação ou conteúdo enganoso</option>
+                        <option value="outro">❓ Outro motivo</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.4rem; color:var(--text-light);">Detalhes adicionais (opcional)</label>
+                    <textarea id="reportDetails" rows="3" maxlength="300" placeholder="Explique brevemente o motivo para a equipe de moderação..." style="width:100%;"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeReportModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="background:var(--danger); border-color:var(--danger); width:auto; margin-top:0;">Enviar Denúncia</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="../js/api.js"></script>
     <script src="../js/feed.js"></script>
