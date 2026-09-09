@@ -6,11 +6,13 @@ const getDashboardStats = async (req, res) => {
         const usersSnap = await db.collection('users').get();
         const postsSnap = await db.collection('posts').get();
         const oppsSnap = await db.collection('opportunities').get();
+        const reportsSnap = await db.collection('reports').where('status', '==', 'pending').get();
 
         const stats = {
             totalUsers: usersSnap.size,
             totalPosts: postsSnap.size,
             totalOpportunities: oppsSnap.size,
+            pendingReports: reportsSnap.size,
             roles: {
                 aluno: 0,
                 'ex-aluno': 0,
@@ -107,9 +109,70 @@ const adminDeletePost = async (req, res) => {
     }
 };
 
+//Listar denuncias pendentes
+const listReports = async (req, res) => {
+    const { status = 'pending' } = req.query;
+
+    try {
+        const snapshot = await db.collection('reports')
+           .where('status', '==', status)
+           .orderBy('created_at', 'desc')
+           .limit(50)
+           .get();
+
+        const reports = [];
+        snapshot.forEach(doc => {
+            reports.push({ id: doc.id, ...doc.data() });
+        });
+
+        return res.json({ reports });
+    } catch (error) {
+        console.error('Erro ao listar denuncias:', error);
+        return res.status(500).json({ error: 'Erro interno ao listar denuncias.'});
+    }
+};
+
+//Resolver ou descartar denuncia
+const resolveReport = async (req, res) => {
+    const { id } = req.params;
+    const { action } = req.body; //'delete_post' ou 'dismiss'
+
+    try {
+        const reportRef = db.collection('reports').doc(id);
+        const reportDoc = await reportRef.get();
+
+        if (!reportDoc.exists) {
+            return res.status(404).json({ error: 'Denuncia nao encontrada.'});
+        }
+
+        const reportData = reportDoc.data();
+
+        if (action === 'delete_post') {
+            //deleta o post denunciado se ele ainda existir
+            const postRef = db.collection('posts').doc(reportData.post_id);
+            const postDoc = await postRef.get();
+
+            if (postDoc.exists) {
+                await postRef.delete();
+            }
+            await reportRef.update({ status: 'resolved', resolved_at: new Date().toISOString() });
+            return res.json({ message: 'Publicacao excluida e denuncia marcada como resolvida.'})
+        } else {
+            //apenas descarta a denuncia
+            await reportRef.update({ status: 'dismissed', resolved_at: new Date().toISOString() });
+            return res.json({ message: 'Denuncia descartada pela moderacao.' });
+        }
+    } catch (error) {
+        console.error('Erro ao resolver denuncia:', error);
+        return res.status(500).json({ error: 'Erro interno ao resolver denuncia.' });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     listUsers,
     updateUserRole,
-    adminDeletePost
+    adminDeletePost,
+    listReports,
+    resolveReport
 };

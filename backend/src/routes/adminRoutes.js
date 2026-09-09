@@ -8,7 +8,9 @@ const {
     getDashboardStats,
     listUsers,
     updateUserRole,
-    adminDeletePost
+    adminDeletePost,
+    listReports,
+    resolveReport
 } = require('../controllers/adminController');
 
 //Todas as rotas de admin exigem autenticação e a role 'admin'
@@ -18,5 +20,9 @@ router.get('/stats', getDashboardStats);
 router.get('/users', listUsers);
 router.patch('/users/:id/role', updateUserRole);
 router.delete('/posts/:id', adminDeletePost);
+
+//Gestao de denuncias
+router.get('/reports', listReports);
+router.patch('/reports/:id/resolve', resolveReport);
 
 module.exports = router;
