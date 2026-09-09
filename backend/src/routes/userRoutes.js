@@ -20,16 +20,27 @@ const {
     getFollowing
 } = require('../controllers/followController');
 
-//Exigem que o usuario esteja logado
+const {
+    getNotifications,
+    markAsRead,
+    markAllAsRead,
+} = require('../controllers/notificationController');
+
+// Exigem que o usuario esteja logado
 router.get('/me', authMiddleware, getMyProfile);
 router.get('/search', authMiddleware, searchUsers);
 router.get('/:id', authMiddleware, getUserProfile);
 router.put('/bio', authMiddleware, validate(updateBioSchema), updateBio);
 router.post('/avatar', authMiddleware, upload.single('avatar'), uploadAvatar);
 
-//Rotas de Seguidores
+// Rotas de Seguidores
 router.post('/:id/follow', authMiddleware, toggleFollow);
 router.get('/:id/followers', authMiddleware, getFollowers);
 router.get('/:id/following', authMiddleware, getFollowing);
+
+// Rotas de Notificacoes
+router.get('/me/notifications', authMiddleware, getNotifications);
+router.patch('/me/notifications/read-all', authMiddleware, markAllAsRead);
+router.patch('/me/notifications/:id/read', authMiddleware, markAsRead);
 
 module.exports = router;

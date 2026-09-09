@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { createNotification } = require('./notificationController');
 
 // Alterna o status de seguidor
 const toggleFollow = async (req, res) => {
@@ -32,6 +33,25 @@ const toggleFollow = async (req, res) => {
         following_id: followingId,
         created_at: new Date().toISOString()
       });
+
+      // Dispara notificacao para o usuario seguido
+      const actorDoc = await db.collection('users').doc(followerId).get();
+      const actorData = actorDoc.data() || {};
+
+      createNotification({
+        recipient_id: followingId,
+        actor: {
+          id: followerId,
+          name: actorData.name || req.userUsername,
+          username: req.userUsername,
+          profile_picture: actorData.profile_picture || '',
+          role: req.userRole || 'aluno'
+        },
+        type: 'follow',
+        text: 'comecou a seguir voce.',
+        resourceId: followerId
+      });
+
       return res.json({ message: 'Voce esta seguindo este usuario agora!', following: true });
     }
   } catch (error) {

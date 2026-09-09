@@ -1,5 +1,6 @@
 const { z, boolean } = require('zod');
 const { db, admin } = require('../config/firebase');
+const { createNotification } = require('./notificationController');
 
 // Schemas de validação
 const createPostSchema = z.object({
@@ -26,7 +27,7 @@ const createPost = async (req, res) => {
     const userDoc = await db.collection('users').doc(req.userId).get();
     const userData = userDoc.data() || {};
 
-    //Somente professor ou admin podem criar/posts fixados
+    // Somente professor ou admin podem criar/posts fixados
     const isAnnouncementAllowed = ['professor', 'admin'].includes(userData.role);
     const shouldPin = isAnnouncementAllowed && Boolean(is_announcement);
 
@@ -43,7 +44,7 @@ const createPost = async (req, res) => {
       content,
       image: imageUrl,
       author,
-      is_announcement: shouldPin, //flag de aviso/fixado
+      is_announcement: shouldPin, // flag de aviso/fixado
       likesCount: 0,
       commentsCount: 0,
       created_at: new Date().toISOString()
@@ -105,7 +106,7 @@ const getFeed = async (req, res) => {
       };
     });
 
-    //anuncios primeiro
+    // Anúncios primeiro
     formattedPosts.sort((a, b) => {
       if (a.is_announcement === b.is_announcement) {
         return new Date(b.createdAt) - new Date(a.createdAt);
@@ -131,6 +132,13 @@ const toggleLike = async (req, res) => {
       .get();
 
     const postRef = db.collection('posts').doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      return res.status(404).json({ error: 'Post nao encontrado.' });
+    }
+
+    const postData = postDoc.data();
 
     if (!existingLikeQuery.empty) {
       // Remove curtida
@@ -149,6 +157,25 @@ const toggleLike = async (req, res) => {
       await postRef.update({
         likesCount: admin.firestore.FieldValue.increment(1)
       });
+
+      // Dispara notificacao para o dono do post
+      const actorDoc = await db.collection('users').doc(req.userId).get();
+      const actorData = actorDoc.data() || {};
+
+      createNotification({
+        recipient_id: postData.user_id,
+        actor: {
+          id: req.userId,
+          name: actorData.name || req.userUsername,
+          username: req.userUsername,
+          profile_picture: actorData.profile_picture || '',
+          role: req.userRole || 'aluno'
+        },
+        type: 'like',
+        text: 'curtiu a sua publicacao.',
+        resourceId: postId
+      });
+
       return res.json({ message: 'Post curtido com sucesso!', liked: true });
     }
   } catch (error) {
@@ -163,6 +190,14 @@ const addComment = async (req, res) => {
   const { content } = req.body;
 
   try {
+    const postRef = db.collection('posts').doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      return res.status(404).json({ error: 'Post nao encontrado.' });
+    }
+
+    const postData = postDoc.data();
     const userDoc = await db.collection('users').doc(req.userId).get();
     const userData = userDoc.data() || {};
 
@@ -181,8 +216,23 @@ const addComment = async (req, res) => {
 
     const commentRef = await db.collection('comments').add(commentData);
 
-    await db.collection('posts').doc(postId).update({
+    await postRef.update({
       commentsCount: admin.firestore.FieldValue.increment(1)
+    });
+
+    // Dispara notificacao para o autor do post
+    createNotification({
+      recipient_id: postData.user_id,
+      actor: {
+        id: req.userId,
+        name: userData.name || req.userUsername,
+        username: req.userUsername,
+        profile_picture: userData.profile_picture || '',
+        role: req.userRole || 'aluno'
+      },
+      type: 'comment',
+      text: 'comentou na sua publicacao.',
+      resourceId: postId
     });
 
     return res.status(201).json({

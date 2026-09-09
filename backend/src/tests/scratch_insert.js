@@ -1,13 +1,4 @@
-const supabase = require('../config/supabase');
+// Arquivo de teste de scratch
+console.log('Scratch insert');
 
-async function test() {
-  const { data, error} =  await supabase
-    .from('messages')
-    .insert([{ sender_id: 1, receiver_id: 2, content: 'test msg' }])
-    .select();
-    
-  console.log('Error:', error);
-  console.log('Data:', data);
-}
 
-test();

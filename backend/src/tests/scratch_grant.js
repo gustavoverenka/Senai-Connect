@@ -1,2 +1,4 @@
-// Código do opportunities.js para ser movido ou importado
+// Arquivo de teste de scratch
+console.log('Scratch grant');
+
 
