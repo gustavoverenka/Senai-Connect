@@ -35,24 +35,27 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-//Listar usuarios com paginação e filtro por role
+// Listar usuarios com paginacao e filtro por role
 const listUsers = async (req, res) => {
     const { role } = req.query;
 
     try {
-        let query = db.collection('users').orderBy('created_at', 'desc');
+        let query = db.collection('users');
 
         if (role) {
-            query = query.where('role', '==', role);
+            query = query.where('role', '==', role.toLowerCase());
         }
 
-        const snapshot = await query.limit(50).get();
+        const snapshot = await query.limit(100).get();
         const users = [];
 
         snapshot.forEach(doc => {
             const { password, verify_token, reset_token, reset_token_expires, ...user } = doc.data();
             users.push({ id: doc.id, ...user });
         });
+
+        // Ordena em memoria para nao exigir composite index no Firestore
+        users.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
         return res.json({ users });
     } catch (error) {
@@ -89,7 +92,7 @@ const updateUserRole = async (req, res) => {
     }
 };
 
-//Excluir post improprio
+// Excluir post improprio
 const adminDeletePost = async (req, res) => {
     const { id } = req.params;
 
@@ -98,37 +101,41 @@ const adminDeletePost = async (req, res) => {
         const postDoc = await postRef.get();
 
         if (!postDoc.exists) {
-            return res.status(404).json({ error: 'Post não encontrado.'});
+            return res.status(404).json({ error: 'Post não encontrado.' });
         }
 
         await postRef.delete();
-        return res.json({ message: 'Post removido pela moderação com sucesso.'});
+        return res.json({ message: 'Post removido pela moderação com sucesso.' });
     } catch (error) {
         console.error('Erro na moderação do post:', error);
-        return res.status(500).json({ error: 'Erro interno ao remover post.'});
+        return res.status(500).json({ error: 'Erro interno ao remover post.' });
     }
 };
 
-//Listar denuncias pendentes
+// Listar denuncias pendentes
 const listReports = async (req, res) => {
     const { status = 'pending' } = req.query;
 
     try {
-        const snapshot = await db.collection('reports')
-           .where('status', '==', status)
-           .orderBy('created_at', 'desc')
-           .limit(50)
-           .get();
+        let query = db.collection('reports');
+        if (status) {
+            query = query.where('status', '==', status);
+        }
+
+        const snapshot = await query.limit(100).get();
 
         const reports = [];
         snapshot.forEach(doc => {
             reports.push({ id: doc.id, ...doc.data() });
         });
 
+        // Ordena em memoria para dispensar criacao de composite index no Firestore
+        reports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
         return res.json({ reports });
     } catch (error) {
         console.error('Erro ao listar denuncias:', error);
-        return res.status(500).json({ error: 'Erro interno ao listar denuncias.'});
+        return res.status(500).json({ error: 'Erro interno ao listar denuncias.' });
     }
 };
 

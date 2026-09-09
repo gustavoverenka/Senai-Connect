@@ -56,12 +56,12 @@ const createOpportunity = async (req, res) => {
   }
 };
 
-//Listar Oportunidades 
+// Listar Oportunidades 
 const getOpportunities = async (req, res) => {
   try {
     const { type, workplace_type } = req.query;
 
-    let query = db.collection('opportunities').orderBy('created_at', 'desc');
+    let query = db.collection('opportunities');
 
     if (type) {
       query = query.where('type', '==', type);
@@ -70,12 +70,15 @@ const getOpportunities = async (req, res) => {
       query = query.where('workplace_type', '==', workplace_type);
     }
 
-    const snapshot = await query.limit(50).get();
+    const snapshot = await query.limit(100).get();
 
     const opportunities = [];
     snapshot.forEach(doc => {
       opportunities.push({ id: doc.id, ...doc.data() });
     });
+
+    // Ordenacao em memoria para dispensar composite index no Firestore
+    opportunities.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
     return res.json({ opportunities });
   } catch (error) {

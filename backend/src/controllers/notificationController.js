@@ -6,8 +6,7 @@ const getNotifications = async (req, res) => {
     const snapshot = await db
       .collection('notifications')
       .where('recipient_id', '==', req.userId)
-      .orderBy('created_at', 'desc')
-      .limit(30)
+      .limit(50)
       .get();
 
     const notifications = [];
@@ -18,6 +17,9 @@ const getNotifications = async (req, res) => {
       if (!data.read) unreadCount++;
       notifications.push({ id: doc.id, ...data });
     });
+
+    // Ordenacao em memoria para nao exigir composite index no Firestore
+    notifications.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
     return res.json({
       unreadCount,
