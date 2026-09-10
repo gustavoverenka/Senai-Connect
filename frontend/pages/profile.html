@@ -17,50 +17,61 @@
                 <span>Connect</span>
             </div>
             <div class="nav-links">
-                <a href="feed.html"> Feed</a>
-                <a href="opportunities.html"> Vagas & Mentoria</a>
-                <a href="search.html"> Explorar</a>
-                <a href="inbox.html"> Mensagens</a>
-                <a href="profile.html" class="active"> Meu Perfil</a>
-                <a href="admin.html" id="adminNav" style="display:none;">🛡️ Moderação</a>
-                <button class="btn-logout" onclick="logout()">Sair</button>
+                <a href="feed.html">Feed</a>
+                <a href="opportunities.html">Vagas e Mentoria</a>
+                <a href="search.html">Explorar</a>
+                <a href="inbox.html">Mensagens</a>
+                <a href="profile.html" class="active">Meu Perfil</a>
+                <a href="admin.html" id="adminNav" class="is-hidden">Moderacao</a>
+                <button id="btnLogout" class="btn-logout">Sair</button>
             </div>
         </div>
     </nav>
 
     <main class="profile-container">
-        <div class="profile-card">
-            <img id="profileAvatar" class="profile-avatar" alt="Foto de perfil">
-            <h2 id="profileName">Carregando...</h2>
-            <div id="profileBadge" style="margin: 6px 0 10px 0;"></div>
-            <p id="profileUsername" style="color:var(--text-light); font-size:0.9rem;">@...</p>
+        <!-- Cartão Principal de Perfil -->
+        <article class="card profile-card">
+            <img id="profileAvatar" class="profile-avatar" src="" alt="Foto de perfil">
+            <h2 id="profileName" class="profile-name">Carregando...</h2>
+            <div id="profileBadge" class="profile-badge-container"></div>
+            <p id="profileUsername" class="profile-username">@...</p>
             
-            <div id="profileExtraInfo" style="margin: 12px 0; font-size:0.9rem; color:var(--text-light);"></div>
+            <div id="profileExtraInfo" class="profile-extra-info"></div>
             
-            <p id="profileBio" style="margin-top:10px; font-style:italic;">Sem bio por enquanto.</p>
-        </div>
+            <p id="profileBio" class="profile-bio">Sem biografia informada.</p>
+        </article>
 
-        <div class="profile-edit">
-            <h3>Editar Perfil</h3>
+        <!-- Edição do Perfil -->
+        <section class="card profile-edit-card">
+            <h3>Editar Informacoes</h3>
+            
             <div class="form-group">
-                <label>Bio (máx. 250 caracteres)</label>
-                <textarea id="bioInput" rows="2" maxlength="250" placeholder="Conte algo sobre sua experiência no SENAI ou área de interesse..."></textarea>
+                <label for="bioInput">Biografia (maximo 250 caracteres)</label>
+                <textarea id="bioInput" rows="3" maxlength="250" placeholder="Compartilhe suas areas de interesse ou projetos no SENAI..."></textarea>
             </div>
+
             <div class="form-group">
-                <label>Foto de Perfil</label>
+                <label for="avatarInput">Atualizar Foto de Perfil</label>
                 <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp">
             </div>
-            <div class="profile-actions">
-                <button class="btn-primary" onclick="updateBio()">Salvar Bio</button>
-                <button class="btn-secondary" onclick="uploadAvatar()">Enviar Foto</button>
-            </div>
-        </div>
 
-        <div class="connections">
-            <button class="btn-secondary" onclick="loadConnections('followers')">Ver Conexões / Seguidores</button>
-            <button class="btn-secondary" onclick="loadConnections('following')">Ver Quem Estou Seguindo</button>
-            <div id="connectionList" style="margin-top:1rem;"><p style="color:var(--text-light);">Clique em um botão para ver suas conexões.</p></div>
-        </div>
+            <div class="profile-actions">
+                <button id="btnSaveBio" class="btn-primary">Salvar Biografia</button>
+                <button id="btnUploadAvatar" class="btn-secondary">Enviar Foto</button>
+            </div>
+        </section>
+
+        <!-- Conexões / Seguidores -->
+        <section class="card connections-card">
+            <div class="connections-toggle">
+                <button id="btnTabFollowers" class="btn-secondary active">Seguidores</button>
+                <button id="btnTabFollowing" class="btn-secondary">Seguindo</button>
+            </div>
+            
+            <div id="connectionList" class="connections-list" aria-live="polite">
+                <p class="state-message">Carregando conexoes...</p>
+            </div>
+        </section>
     </main>
 
     <script src="../js/api.js"></script>

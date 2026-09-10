@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Perfil do Usuário</title>
+    <title>SENAI Connect - Perfil do Membro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/navbar.css">
@@ -17,39 +17,46 @@
                 <span>Connect</span>
             </div>
             <div class="nav-links">
-                <a href="feed.html"> Feed</a>
-                <a href="opportunities.html"> Vagas & Mentoria</a>
-                <a href="search.html"> Explorar</a>
-                <a href="inbox.html"> Mensagens</a>
-                <a href="profile.html"> Meu Perfil</a>
-                <a href="admin.html" id="adminNav" style="display:none;">🛡️ Moderação</a>
-                <button class="btn-logout" onclick="logout()">Sair</button>
+                <a href="feed.html">Feed</a>
+                <a href="opportunities.html">Vagas e Mentoria</a>
+                <a href="search.html">Explorar</a>
+                <a href="inbox.html">Mensagens</a>
+                <a href="profile.html">Meu Perfil</a>
+                <a href="admin.html" id="adminNav" class="is-hidden">Moderacao</a>
+                <button id="btnLogout" class="btn-logout">Sair</button>
             </div>
         </div>
     </nav>
 
     <main class="profile-container">
-        <div class="profile-card">
-            <img id="userAvatar" class="profile-avatar" alt="Foto de perfil">
-            <h2 id="userName">Carregando...</h2>
-            <div id="userBadge" style="margin: 6px 0 10px 0;"></div>
-            <p id="userUsername" style="color:var(--text-light); font-size:0.9rem;">@...</p>
+        <!-- Cartão de Visualização de Perfil -->
+        <article class="card profile-card">
+            <img id="userAvatar" class="profile-avatar" src="" alt="Foto de perfil">
+            <h2 id="userName" class="profile-name">Carregando...</h2>
+            <div id="userBadge" class="profile-badge-container"></div>
+            <p id="userUsername" class="profile-username">@...</p>
             
-            <div id="userExtraInfo" style="margin: 12px 0; font-size:0.9rem; color:var(--text-light);"></div>
+            <div id="userExtraInfo" class="profile-extra-info"></div>
 
-            <p id="userBio" style="margin-top: 10px; font-style:italic;">Sem bio por enquanto.</p>
+            <p id="userBio" class="profile-bio">Sem biografia informada.</p>
             
-            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap:wrap;">
-                <button id="followBtn" class="btn-primary" onclick="toggleFollowUser()" style="display:none; width: auto; padding: 0.6rem 1.4rem;">Seguir</button>
-                <button id="msgBtn" class="btn-secondary" onclick="window.location.href='chat.html?id=' + userId" style="display:none; width: auto; padding: 0.6rem 1.4rem;">Mandar Mensagem</button>
+            <div class="user-interaction-actions">
+                <button id="followBtn" class="btn-primary is-hidden">Seguir</button>
+                <button id="msgBtn" class="btn-secondary is-hidden">Enviar Mensagem</button>
             </div>
-        </div>
+        </article>
 
-        <div class="connections">
-            <button class="btn-secondary" onclick="loadConnections('followers')">Ver Conexões / Seguidores</button>
-            <button class="btn-secondary" onclick="loadConnections('following')">Ver Quem Está Seguindo</button>
-            <div id="connectionList" style="margin-top:1rem;"><p style="color:var(--text-light);">Clique em um botão para ver as conexões.</p></div>
-        </div>
+        <!-- Conexões do Usuário -->
+        <section class="card connections-card">
+            <div class="connections-toggle">
+                <button id="btnUserFollowers" class="btn-secondary active">Seguidores</button>
+                <button id="btnUserFollowing" class="btn-secondary">Seguindo</button>
+            </div>
+            
+            <div id="connectionList" class="connections-list" aria-live="polite">
+                <p class="state-message">Carregando conexoes...</p>
+            </div>
+        </section>
     </main>
 
     <script src="../js/api.js"></script>

@@ -17,40 +17,42 @@
                 <span>Connect</span>
             </div>
             <div class="nav-links">
-                <a href="feed.html"> Feed</a>
-                <a href="opportunities.html"> Vagas & Mentoria</a>
-                <a href="search.html" class="active"> Explorar</a>
-                <a href="inbox.html"> Mensagens</a>
-                <a href="profile.html"> Meu Perfil</a>
-                <a href="admin.html" id="adminNav" style="display:none;">🛡️ Moderação</a>
-                <button class="btn-logout" onclick="logout()">Sair</button>
+                <a href="feed.html">Feed</a>
+                <a href="opportunities.html">Vagas e Mentoria</a>
+                <a href="search.html" class="active">Explorar</a>
+                <a href="inbox.html">Mensagens</a>
+                <a href="profile.html">Meu Perfil</a>
+                <a href="admin.html" id="adminNav" class="is-hidden">Moderacao</a>
+                <button id="btnLogout" class="btn-logout">Sair</button>
             </div>
         </div>
     </nav>
 
     <main class="search-container">
-        <div style="margin-bottom: 1.5rem;">
+        <header class="section-header">
             <h2>Explorar a Comunidade SENAI</h2>
-            <p style="color:var(--text-light); font-size:0.9rem;">Encontre colegas de curso, mentores formados e instrutores</p>
-        </div>
+            <p class="section-subtitle">Encontre colegas de curso, mentores formados e instrutores</p>
+        </header>
 
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Buscar por nome, @usuário ou curso...">
+        <!-- Campo de Busca -->
+        <section class="search-box">
+            <input type="search" id="searchInput" placeholder="Buscar por nome, usuario ou curso...">
             <button id="searchBtn" class="btn-primary">Buscar</button>
-        </div>
+        </section>
 
-        <!-- Filtros Rápidos por Role -->
-        <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
-            <button class="filter-pill active" onclick="applyRoleFilter('', this)">Todos</button>
-            <button class="filter-pill" onclick="applyRoleFilter('aluno', this)">🎓 Alunos</button>
-            <button class="filter-pill" onclick="applyRoleFilter('ex-aluno', this)"> Ex-Alunos</button>
-            <button class="filter-pill" onclick="applyRoleFilter('professor', this)">👨 Professores</button>
-            <button class="filter-pill" onclick="applyMentoringFilter(this)"> Disponíveis para Mentoria</button>
-        </div>
+        <!-- Filtros Rápidos por Categoria -->
+        <nav class="filter-pills" aria-label="Filtros de membros">
+            <button class="filter-pill active" data-role="">Todos</button>
+            <button class="filter-pill" data-role="aluno">Alunos</button>
+            <button class="filter-pill" data-role="ex-aluno">Ex-Alunos</button>
+            <button class="filter-pill" data-role="professor">Professores</button>
+            <button class="filter-pill" id="btnFilterMentoring">Disponiveis para Mentoria</button>
+        </nav>
 
-        <div id="userResults">
-            <p style="text-align:center; color:var(--text-light);">Carregando comunidade...</p>
-        </div>
+        <!-- Resultados da Busca -->
+        <section id="userResults" class="user-results-grid" aria-live="polite">
+            <p class="state-message">Carregando membros da comunidade...</p>
+        </section>
     </main>
 
     <script src="../js/api.js"></script>

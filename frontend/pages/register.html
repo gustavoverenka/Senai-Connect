@@ -3,119 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Cadastro</title>
+    <title>SENAI Connect - Cadastro Institucional</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/auth.css">
 </head>
 <body>
     <div class="auth-wrapper">
-        <div class="auth-card">
-            <div class="auth-header">
+        <main class="auth-card auth-card-wide">
+            <header class="auth-header">
                 <div class="auth-logo">
                     <span class="senai-badge">SENAI</span>
                     <span>Connect</span>
                 </div>
-                <h1 class="auth-title">Crie sua Conta</h1>
-                <p class="auth-subtitle">A rede profissional e acadêmica do ecossistema SENAI</p>
-            </div>
+                <h1 class="auth-title">Criar Conta</h1>
+                <p class="auth-subtitle">Junte-se à comunidade de alunos, professores e ex-alunos</p>
+            </header>
 
-            <form id="registerForm">
-                <!-- Seletor de Role -->
-                <label style="font-size:0.85rem; font-weight:600; color:var(--text-light); margin-bottom:0.4rem; display:block;">Eu sou:</label>
-                <div class="role-selector">
-                    <div class="role-option active" data-role="aluno"> Aluno</div>
-                    <div class="role-option" data-role="ex-aluno"> Ex-Aluno</div>
-                    <div class="role-option" data-role="professor"> Professor</div>
-                </div>
-                <input type="hidden" id="role" value="aluno">
-
-                <!-- Campos Gerais -->
+            <form id="registerForm" class="auth-form">
+                <!-- Seletor Dinâmico de Papel -->
                 <div class="form-group">
-                    <label>Nome Completo</label>
-                    <input type="text" id="name" placeholder="Ex: Lucas Ferreira" required>
-                </div>
-                <div class="form-group">
-                    <label>Nome de Usuário (@)</label>
-                    <input type="text" id="username" placeholder="lucasferreira" required>
-                </div>
-                <div class="form-group">
-                    <label>E-mail</label>
-                    <input type="email" id="email" placeholder="seu.email@senai.br" required>
-                </div>
-                <div class="form-group">
-                    <label>Unidade SENAI</label>
-                    <input type="text" id="unit" placeholder="Ex: SENAI Londrina">
+                    <label class="form-label">Eu sou:</label>
+                    <div class="role-selector" id="roleSelector">
+                        <button type="button" class="role-option active" data-role="aluno">Aluno</button>
+                        <button type="button" class="role-option" data-role="ex-aluno">Ex-Aluno</button>
+                        <button type="button" class="role-option" data-role="professor">Professor</button>
+                    </div>
+                    <input type="hidden" id="role" name="role" value="aluno">
                 </div>
 
-                <!-- Campos Condicionais: ALUNO -->
-                <div id="fields-aluno" class="dynamic-fields">
+                <!-- Dados Gerais -->
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Curso Atual</label>
-                        <input type="text" id="course" placeholder="Ex: Técnico em Desenvolvimento de Sistemas">
+                        <label for="name">Nome Completo</label>
+                        <input type="text" id="name" placeholder="Ex: Lucas Ferreira" required>
                     </div>
                     <div class="form-group">
-                        <label>Período / Módulo</label>
-                        <input type="text" id="class_period" placeholder="Ex: 3º Módulo - Noturno">
+                        <label for="username">Nome de Usuário (@)</label>
+                        <input type="text" id="username" placeholder="lucasferreira" required>
                     </div>
                 </div>
 
-                <!-- Campos Condicionais: EX-ALUNO -->
-                <div id="fields-ex-aluno" class="dynamic-fields" style="display: none;">
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Curso Concluído</label>
-                        <input type="text" id="graduated_course" placeholder="Ex: Análise de Sistemas">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" placeholder="seu.email@senai.br" required>
                     </div>
                     <div class="form-group">
-                        <label>Empresa e Cargo Atual</label>
-                        <input type="text" id="current_company" placeholder="Ex: Desenvolvedor na Tech Corp">
+                        <label for="unit">Unidade SENAI</label>
+                        <input type="text" id="unit" placeholder="Ex: SENAI Londrina">
+                    </div>
+                </div>
+
+                <!-- Campos especificos de aluno-->
+                <fieldset id="fields-aluno" class="dynamic-fieldset">
+                    <legend>Dados Acadêmicos</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="course">Curso Atual</label>
+                            <input type="text" id="course" placeholder="Ex: Técnico em Desenvolvimento de Sistemas">
+                        </div>
+                        <div class="form-group">
+                            <label for="class_period">Módulo / Período</label>
+                            <input type="text" id="class_period" placeholder="Ex: 3º Módulo - Noturno">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Campos especificos de ex-aluno -->
+                <fieldset id="fields-ex-aluno" class="dynamic-fieldset is-hidden">
+                    <legend>Trajetória Profissional</legend>
+                    <div class="form-group">
+                        <label for="graduated_course">Curso Concluído</label>
+                        <input type="text" id="graduated_course" placeholder="Ex: Análise e Desenvolvimento de Sistemas">
                     </div>
                     <div class="form-group">
-                        <label>LinkedIn / Portfólio (URL)</label>
+                        <label for="current_company">Empresa e Cargo Atual</label>
+                        <input type="text" id="current_company" placeholder="Ex: Desenvolvedor Front-end na Tech Corp">
+                    </div>
+                    <div class="form-group">
+                        <label for="linkedin_url">LinkedIn / Portfólio (URL)</label>
                         <input type="url" id="linkedin_url" placeholder="https://linkedin.com/in/seuperfil">
                     </div>
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
-                        <input type="checkbox" id="open_for_mentoring" style="width:auto;">
-                        <label for="open_for_mentoring" style="margin-bottom:0; cursor:pointer; font-size:0.85rem; color:var(--text);">Disponível para dar mentoria e tirar dúvidas de alunos</label>
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="open_for_mentoring">
+                        <label for="open_for_mentoring">Disponível para dar mentoria e orientar alunos</label>
                     </div>
-                </div>
+                </fieldset>
 
-                <!-- Campos Condicionais: PROFESSOR -->
-                <div id="fields-professor" class="dynamic-fields" style="display: none;">
+                <!-- Campos especificos de professor-->
+                <fieldset id="fields-professor" class="dynamic-fieldset is-hidden">
+                    <legend>Área de Ensino</legend>
                     <div class="form-group">
-                        <label>Áreas de Ensino (separadas por vírgula)</label>
-                        <input type="text" id="teaching_areas" placeholder="Ex: Banco de Dados, Backend, Robótica">
+                        <label for="teaching_areas">Áreas / Disciplinas Ministradas</label>
+                        <input type="text" id="teaching_areas" placeholder="Ex: Backend, Banco de Dados, IoT">
                     </div>
                     <div class="form-group">
-                        <label>Código Institucional de Professor</label>
+                        <label for="teacher_code">Código Institucional de Professor</label>
                         <input type="password" id="teacher_code" placeholder="Código fornecido pela coordenação">
                     </div>
-                </div>
+                </fieldset>
 
                 <div class="form-group">
-                    <label>Senha</label>
-                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
+                    <label for="password">Senha de Acesso</label>
+                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required minlength="6">
                 </div>
-                
-                <button type="submit" class="btn-primary">Finalizar Cadastro</button>
+
+                <button type="submit" id="btnRegister" class="btn-primary btn-block">Concluir Cadastro</button>
             </form>
 
-            <form id="verifyForm" style="display: none;">
-                <p style="text-align:center; margin-bottom: 1.5rem; color: var(--text-light); font-size: 0.95rem;">
-                   Enviamos um código de 6 dígitos para o seu e-mail institucional.
+            <!-- Formulario de ativacao por codigo -->
+            <form id="verifyForm" class="auth-form is-hidden">
+                <p class="verify-instruction">
+                    Enviamos um código de verificação para o seu e-mail. Digite o código abaixo para ativar sua conta:
                 </p>
                 <div class="form-group">
-                    <label>Código de Verificação</label>
-                    <input type="text" id="verifyCode" placeholder="123456" required maxlength="6" style="text-align:center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                    <label for="verifyCode">Código de 6 dígitos</label>
+                    <input type="text" id="verifyCode" class="input-verify-code" placeholder="123456" maxlength="6" required>
                 </div>
-                <button type="submit" class="btn-primary">Ativar Conta</button>
+                <button type="submit" id="btnVerify" class="btn-primary btn-block">Validar e Ativar Conta</button>
             </form>
 
-            <div class="auth-links">
-                <p>Já possui uma conta? <a href="../index.html">Faça Login</a></p>
-            </div>
-        </div>
+            <footer class="auth-links">
+                <p>Já possui conta? <a href="../index.html">Fazer Login</a></p>
+            </footer>
+        </main>
     </div>
+
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
 </body>

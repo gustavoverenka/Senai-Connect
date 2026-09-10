@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENAI Connect - Mural de Oportunidades & Mentorias</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/navbar.css">
+    <link rel="stylesheet" href="../css/opportunities.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="brand">
+                <span class="senai-badge">SENAI</span>
+                <span>Connect</span>
+            </div>
+            <div class="nav-links">
+                <a href="feed.html">Feed</a>
+                <a href="opportunities.html" class="active">Vagas & Mentoria</a>
+                <a href="search.html">Explorar</a>
+                <a href="inbox.html">Mensagens</a>
+                <a href="profile.html">Meu Perfil</a>
+                <a href="admin.html" id="adminNav" class="is-hidden"> Moderação</a>
+                <button id="btnLogout" class="btn-logout">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="opp-container">
+        <header class="opp-header">
+            <div>
+                <h2>Mural de Oportunidades</h2>
+                <p class="section-subtitle">Vagas de estágio, empregos e conexões diretas com professores e ex-alunos formados</p>
+            </div>
+            <button id="btnOpenOppModal" class="btn-primary is-hidden">+ Publicar Oportunidade</button>
+        </header>
+
+        <!-- Filtros por Categoria -->
+        <nav class="filter-bar" aria-label="Filtrar tipo de oportunidade">
+            <button class="filter-btn active" data-type="">Todas</button>
+            <button class="filter-btn" data-type="estagio">Estágios</button>
+            <button class="filter-btn" data-type="emprego">Empregos</button>
+            <button class="filter-btn" data-type="mentoria">Mentorias</button>
+            <button class="filter-btn" data-type="projeto">Projetos & Iniciação</button>
+        </nav>
+
+        <!-- Lista de Vagas -->
+        <section id="oppList" class="opp-list" aria-live="polite">
+            <p class="state-message">Carregando oportunidades...</p>
+        </section>
+    </main>
+
+    <!-- Modal de Cadastro de Oportunidade -->
+    <div id="oppModal" class="modal-overlay is-hidden" role="dialog" aria-labelledby="oppModalTitle" aria-modal="true">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="oppModalTitle">Publicar Oportunidade</h3>
+                <button id="btnCloseOppModal" class="btn-close" aria-label="Fechar modal">&times;</button>
+            </header>
+
+            <form id="oppForm">
+                <div class="form-group">
+                    <label for="oppTitle">Título da Oportunidade</label>
+                    <input type="text" id="oppTitle" placeholder="Ex: Estágio em Desenvolvimento Front-end" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="oppType">Tipo</label>
+                    <select id="oppType" required>
+                        <option value="estagio">Estágio</option>
+                        <option value="emprego">Emprego</option>
+                        <option value="mentoria">Mentoria</option>
+                        <option value="projeto">Projeto</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="oppCompany">Empresa / Instituição (Opcional)</label>
+                    <input type="text" id="oppCompany" placeholder="Ex: SENAI Lab / Empresa Parceira">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="oppWorkplace">Modalidade</label>
+                        <select id="oppWorkplace">
+                            <option value="presencial">Presencial</option>
+                            <option value="hibrido">Híbrido</option>
+                            <option value="remoto">Remoto</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="oppLocation">Localização</label>
+                        <input type="text" id="oppLocation" placeholder="Ex: Londrina - PR">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="oppDescription">Descrição</label>
+                    <textarea id="oppDescription" rows="3" placeholder="Descreva as responsabilidades, escopo e detalhes..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="oppRequirements">Requisitos (Opcional)</label>
+                    <input type="text" id="oppRequirements" placeholder="Ex: HTML, CSS, JavaScript básico">
+                </div>
+
+                <div class="form-group">
+                    <label for="oppContact">Como se candidatar (Link, E-mail ou Telefone)</label>
+                    <input type="text" id="oppContact" placeholder="Ex: vagas@empresa.com.br ou link do formulário" required>
+                </div>
+
+                <footer class="modal-actions">
+                    <button type="button" id="btnCancelOpp" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Publicar</button>
+                </footer>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/opportunities.js"></script>
+</body>
+</html>
