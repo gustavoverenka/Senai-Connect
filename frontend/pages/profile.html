@@ -1,80 +1,55 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Meu Perfil</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/navbar.css">
-    <link rel="stylesheet" href="../css/profile.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil — SENAI Connect</title>
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-content">
-            <div class="brand">
-                <span class="senai-badge">SENAI</span>
-                <span>Connect</span>
-            </div>
-            <div class="nav-links">
-                <a href="feed.html">Feed</a>
-                <a href="opportunities.html">Vagas e Mentoria</a>
-                <a href="search.html">Explorar</a>
-                <a href="inbox.html">Mensagens</a>
-                <a href="profile.html" class="active">Meu Perfil</a>
-                <a href="admin.html" id="adminNav" class="is-hidden">Moderacao</a>
-                <button id="btnLogout" class="btn-logout">Sair</button>
-            </div>
+  <div id="navbar-root"></div>
+
+  <main class="page-wrap">
+    <div class="grid-layout">
+      <div>
+        <div class="card" id="profile-header">
+          <div class="spinner"></div>
         </div>
-    </nav>
 
-    <main class="profile-container">
-        <!-- Cartão Principal de Perfil -->
-        <article class="card profile-card">
-            <img id="profileAvatar" class="profile-avatar" src="" alt="Foto de perfil">
-            <h2 id="profileName" class="profile-name">Carregando...</h2>
-            <div id="profileBadge" class="profile-badge-container"></div>
-            <p id="profileUsername" class="profile-username">@...</p>
-            
-            <div id="profileExtraInfo" class="profile-extra-info"></div>
-            
-            <p id="profileBio" class="profile-bio">Sem biografia informada.</p>
-        </article>
-
-        <!-- Edição do Perfil -->
-        <section class="card profile-edit-card">
-            <h3>Editar Informacoes</h3>
-            
+        <div class="card hidden" id="edit-bio-card">
+          <h3 class="mt-0">Editar bio</h3>
+          <div id="bio-alert"></div>
+          <form id="bio-form">
             <div class="form-group">
-                <label for="bioInput">Biografia (maximo 250 caracteres)</label>
-                <textarea id="bioInput" rows="3" maxlength="250" placeholder="Compartilhe suas areas de interesse ou projetos no SENAI..."></textarea>
+              <textarea id="bio-input" maxlength="250" placeholder="Fale um pouco sobre você..."></textarea>
             </div>
+            <button type="submit" class="btn btn-primary">Salvar bio</button>
+          </form>
+        </div>
 
-            <div class="form-group">
-                <label for="avatarInput">Atualizar Foto de Perfil</label>
-                <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp">
-            </div>
+        <div class="card hidden" id="avatar-card">
+          <h3 class="mt-0">Foto de perfil</h3>
+          <div id="avatar-alert"></div>
+          <input type="file" id="avatar-input" accept="image/png, image/jpeg, image/webp">
+          <div class="form-hint">JPEG, PNG ou WebP. Máximo 3MB.</div>
+        </div>
+      </div>
 
-            <div class="profile-actions">
-                <button id="btnSaveBio" class="btn-primary">Salvar Biografia</button>
-                <button id="btnUploadAvatar" class="btn-secondary">Enviar Foto</button>
-            </div>
-        </section>
+      <aside class="sidebar">
+        <div class="card">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="followers">Seguidores</button>
+            <button class="tab-btn" data-tab="following">Seguindo</button>
+          </div>
+          <div id="followers-list"><div class="spinner"></div></div>
+          <div id="following-list" class="hidden"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
 
-        <!-- Conexões / Seguidores -->
-        <section class="card connections-card">
-            <div class="connections-toggle">
-                <button id="btnTabFollowers" class="btn-secondary active">Seguidores</button>
-                <button id="btnTabFollowing" class="btn-secondary">Seguindo</button>
-            </div>
-            
-            <div id="connectionList" class="connections-list" aria-live="polite">
-                <p class="state-message">Carregando conexoes...</p>
-            </div>
-        </section>
-    </main>
-
-    <script src="../js/api.js"></script>
-    <script src="../js/profile.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/app.js"></script>
+  <script src="../js/profile.js"></script>
 </body>
 </html>

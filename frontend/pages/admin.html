@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin — SENAI Connect</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="page-wrap">
+    <h2>Painel administrativo</h2>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="users">Usuários</button>
+      <button class="tab-btn" data-tab="reports">Denúncias</button>
+    </div>
+
+    <div class="card" id="tab-users">
+      <div class="filters-bar">
+        <select id="admin-role-filter">
+          <option value="">Todas as roles</option>
+          <option value="aluno">Aluno</option>
+          <option value="ex-aluno">Ex-aluno</option>
+          <option value="professor">Professor</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button class="btn btn-secondary" id="admin-filter-btn">Filtrar</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="users-table">
+          <thead>
+            <tr><th>Nome</th><th>Usuário</th><th>E-mail</th><th>Role</th><th>Ação</th></tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="5"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="tab-reports">
+      <div id="reports-list"><div class="spinner"></div></div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/app.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

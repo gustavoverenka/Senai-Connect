@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar e-mail — SENAI Connect</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <h1>✅ Verifique seu e-mail</h1>
+      <p>Enviamos um código de 6 dígitos para o seu e-mail. Insira-o abaixo para ativar sua conta.</p>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <form id="verify-form">
+      <div class="form-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required placeholder="seu@email.com">
+      </div>
+      <div class="form-group">
+        <label for="code">Código de verificação</label>
+        <input type="text" id="code" required maxlength="6" placeholder="000000" style="letter-spacing: 4px; text-align: center; font-size: 1.2rem;">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Ativar conta</button>
+    </form>
+
+    <div class="auth-footer">
+      <a href="login.html">Voltar para o login</a>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/app.js"></script>
+  <script src="../js/verify.js"></script>
+</body>
+</html>

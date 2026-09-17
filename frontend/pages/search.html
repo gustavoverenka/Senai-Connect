@@ -1,61 +1,42 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAI Connect - Explorar Comunidade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/navbar.css">
-    <link rel="stylesheet" href="../css/search.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscar pessoas — SENAI Connect</title>
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-content">
-            <div class="brand">
-                <span class="senai-badge">SENAI</span>
-                <span>Connect</span>
-            </div>
-            <div class="nav-links">
-                <a href="feed.html">Feed</a>
-                <a href="opportunities.html">Vagas e Mentoria</a>
-                <a href="search.html" class="active">Explorar</a>
-                <a href="inbox.html">Mensagens</a>
-                <a href="profile.html">Meu Perfil</a>
-                <a href="admin.html" id="adminNav" class="is-hidden">Moderacao</a>
-                <button id="btnLogout" class="btn-logout">Sair</button>
-            </div>
-        </div>
-    </nav>
+  <div id="navbar-root"></div>
 
-    <main class="search-container">
-        <header class="section-header">
-            <h2>Explorar a Comunidade SENAI</h2>
-            <p class="section-subtitle">Encontre colegas de curso, mentores formados e instrutores</p>
-        </header>
+  <main class="page-wrap">
+    <div class="card">
+      <h2 class="mt-0">Buscar pessoas</h2>
+      <div class="filters-bar">
+        <input type="search" id="search-q" placeholder="Buscar por nome ou usuário...">
+        <select id="filter-role">
+          <option value="">Todos os perfis</option>
+          <option value="aluno">Alunos</option>
+          <option value="ex-aluno">Ex-alunos</option>
+          <option value="professor">Professores</option>
+        </select>
+        <select id="filter-mentoring">
+          <option value="">Mentoria (todos)</option>
+          <option value="true">Disponível para mentoria</option>
+        </select>
+        <input type="text" id="filter-course" placeholder="Curso">
+        <input type="text" id="filter-unit" placeholder="Unidade">
+      </div>
+      <button class="btn btn-primary" id="search-btn">Buscar</button>
+    </div>
 
-        <!-- Campo de Busca -->
-        <section class="search-box">
-            <input type="search" id="searchInput" placeholder="Buscar por nome, usuario ou curso...">
-            <button id="searchBtn" class="btn-primary">Buscar</button>
-        </section>
+    <div id="results" class="card">
+      <p class="empty-state">Use os filtros acima para encontrar pessoas.</p>
+    </div>
+  </main>
 
-        <!-- Filtros Rápidos por Categoria -->
-        <nav class="filter-pills" aria-label="Filtros de membros">
-            <button class="filter-pill active" data-role="">Todos</button>
-            <button class="filter-pill" data-role="aluno">Alunos</button>
-            <button class="filter-pill" data-role="ex-aluno">Ex-Alunos</button>
-            <button class="filter-pill" data-role="professor">Professores</button>
-            <button class="filter-pill" id="btnFilterMentoring">Disponiveis para Mentoria</button>
-        </nav>
-
-        <!-- Resultados da Busca -->
-        <section id="userResults" class="user-results-grid" aria-live="polite">
-            <p class="state-message">Carregando membros da comunidade...</p>
-        </section>
-    </main>
-
-    <script src="../js/api.js"></script>
-    <script src="../js/search.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/app.js"></script>
+  <script src="../js/search.js"></script>
 </body>
 </html>
